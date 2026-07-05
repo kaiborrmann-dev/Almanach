@@ -35,14 +35,17 @@ def analysiere_habitus_mit_handbuch(image_base64):
     return response.choices[0].message.content
 
 st.title("Soziologischer Habitus-Demonstrator")
-uploaded_file = st.file_uploader("Bild für Demystifizierung hochladen...", type=["jpg", "jpeg", "png"])
+
+# Kamera-Input für mobile Nutzer
+uploaded_file = st.camera_input("Kamera für die Demystifizierung öffnen")
 
 if uploaded_file is not None:
+    # Das Bild in ein PIL-Format konvertieren
     image = Image.open(uploaded_file)
     st.image(image, caption='Analysiertes Bild', use_container_width=True)
     
     if st.button('Soziologisch demystifizieren'):
-        with st.spinner('Extrahiere Doxa...'):
+        with st.spinner('Analysiere Habitus und Doxa...'):
             try:
                 base64_image = get_image_base64(image)
                 resultat = analysiere_habitus_mit_handbuch(base64_image)
