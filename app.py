@@ -9,7 +9,6 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def get_image_base64(image):
     buffered = io.BytesIO()
-    # Bild verkleinern, damit die API nicht überlastet wird
     image.thumbnail((1024, 1024))
     image.save(buffered, format="JPEG")
     return base64.b64encode(buffered.getvalue()).decode('utf-8')
@@ -35,12 +34,12 @@ def analysiere_habitus_mit_handbuch(image_base64):
     return response.choices[0].message.content
 
 st.title("Soziologischer Habitus-Demonstrator")
+st.write("Wähle ein Foto aus deiner Galerie, um den Habitus zu demystifizieren.")
 
-# Kamera-Input für mobile Nutzer
-uploaded_file = st.camera_input("Kamera für die Demystifizierung öffnen")
+# Galerie-Upload statt Kamera (Keine Browser-Berechtigung nötig!)
+uploaded_file = st.file_uploader("Foto auswählen...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Das Bild in ein PIL-Format konvertieren
     image = Image.open(uploaded_file)
     st.image(image, caption='Analysiertes Bild', use_container_width=True)
     
