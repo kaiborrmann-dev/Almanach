@@ -1,26 +1,19 @@
-# SOZIOLOGISCHE_DEMYSTIFIZIERUNGS_LOGIK (SD_Logik)
+import streamlit as st
 
-def analyze_portrait(image_data):
-    # 1. Extraktion der Hexis-Parameter (Körperhaltung, Raumaneignung)
-    hexis_vector = extract_hexis(image_data) #
+# Die logische Basis nach unserem Handbuch
+def init_system():
+    # Initialisierung der Operatoren-Struktur (Handbuch)
+    return {"status": "System bereit", "logik": "Operatoren aktiv"}
+
+def main():
+    st.title("Soziologische Demystifizierung - Alpha-Interface")
     
-    # 2. Anwendung des Ordnungsverfahrens B (Ähnlichkeit der Hexis)
-    # B = c_hexis (Vergleich mit Milieu-Normen)
-    norm_congruence = calculate_B(hexis_vector) #
+    # Hello World als Test der System-Präsenz
+    st.write("Hello World: Logik-Kern initialisiert.")
     
-    # 3. Logische Fixierung durch Operatoren (Handbuch)
-    # mA (Modus), lA (Bedeutung), sA (Sachverhalt), zA (Zuweisung)
-    status = apply_operators(norm_congruence) #
-    
-    # 4. Strukturelle Klassifikation nach D1-D4
-    # D4 definiert die Inklusion D ⊂ C ⊂ A
-    d4_status = verify_d4_inclusion(hexis_vector) #
-    
-    return {
-        "mA": status.mode,
-        "lA": status.meaning,
-        "sA": status.referent,
-        "zA": status.assignment,
-        "D4_Klassifikation": d4_status,
-        "Trigger": "Modul_15_Bedingung" if d4_status == "Misfit" else "Modul_14_Geprüft"
-    }
+    # Test der Verbindung zum Handbuch
+    system_state = init_system()
+    st.code(system_state)
+
+if __name__ == "__main__":
+    main()
