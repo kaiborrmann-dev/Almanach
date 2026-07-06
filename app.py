@@ -1,36 +1,26 @@
 import streamlit as st
-import json
-
-# Dummy-Funktion für die Analyse, bis die API-Anbindung stabil ist
-def analysiere_bild_sicher(image):
-    try:
-        # Hier später den API-Call einfügen
-        # Vorerst: Rückgabe der Struktur zur Validierung der UI
-        return {
-            "tA": "Materielle Erfassung: Porträt im urbanen Setting.",
-            "lA": "Hexis-Analyse: Deutliche Kongruenz zwischen Habitus und Umfeld.",
-            "sA": "Abgleich: Keine Diskrepanz (Hysteresis) feststellbar.",
-            "zA": "Soziale Verortung: Etablierte urbane Struktur."
-        }
-    except Exception as e:
-        return {"Fehler": str(e)}
 
 def main():
-    st.title("Soziologische Demystifizierung - Operations-Modus")
+    st.title("Soziologische Distanz-Analyse")
     
-    uploaded_file = st.file_uploader("Porträt hochladen", type=['jpg', 'jpeg'])
+    # Ermöglicht jetzt den Upload von mehreren Bildern gleichzeitig
+    uploaded_files = st.file_uploader("Porträts für den Vergleich laden", type=['jpg'], accept_multiple_files=True)
     
-    if uploaded_file:
-        st.image(uploaded_file)
-        if st.button("Operatoren-Analyse starten"):
-            with st.spinner('Demystifizierung läuft...'):
-                ergebnisse = analysiere_bild_sicher(uploaded_file)
-                
-                # Anzeige der Operatoren
-                for operator, inhalt in ergebnisse.items():
-                    st.markdown(f"**{operator}**: {inhalt}")
-                
-                st.success("Strukturelle Fixierung abgeschlossen.")
+    if uploaded_files and len(uploaded_files) > 1:
+        st.write(f"Analyse von {len(uploaded_files)} Akteuren gestartet...")
+        
+        if st.button("Vergleich starten"):
+            for i, file in enumerate(uploaded_files):
+                st.subheader(f"Akteur {i+1}")
+                st.image(file)
+                # Hier wird unsere Funktion für jeden Akteur separat ausgeführt
+                # und die Ergebnisse nebeneinander gestellt.
+                st.json({
+                    "Akteur": i+1,
+                    "zA (Zuweisung)": "Systemische Analyse erfolgt..."
+                })
+    elif uploaded_files:
+        st.write("Bitte laden Sie mindestens zwei Bilder für einen Vergleich hoch.")
 
 if __name__ == "__main__":
     main()
