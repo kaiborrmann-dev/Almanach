@@ -1,20 +1,26 @@
-# SOZIOLOGISCHE EINORDNUNG: Levon3.jpg
-{
-  "Objekt": "Levon3.jpg",
-  "Ordnungsverfahren_B": {
-    "Kriterium": "Hexis_Aisance",
-    "Score_Habitus_Kongruenz": 0.92, # Skala 0-1
-  },
-  "Operatoren_Analyse": {
-    "zA": "Zuweisung: Milieu_Urban_Intellektuell",
-    "mA": "Modus: Kontemplativ-Souverän",
-    "lA": "Bedeutung: Habituelle_Übereinstimmung_mit_Feldnorm",
-    "sA": "Sachverhalt: Kongruenz_Hexis_vs_Feld[cite: 1, 3]"
-  },
-  "Strukturelle_Einordnung": {
-    "D4_Inklusions_Status": "Zentrum_C1",
-    "Typus": "Je_ne_sais_quoi_Prädikat",
-    "Misfit_Distanz": "Hoch" # Distanz zum Misfit-Typus[cite: 3]
-  },
-  "System_Status": "Demystifizierung_Erfolgreich" #
-}
+# SOZIOLOGISCHE_DEMYSTIFIZIERUNGS_LOGIK (SD_Logik)
+
+def analyze_portrait(image_data):
+    # 1. Extraktion der Hexis-Parameter (Körperhaltung, Raumaneignung)
+    hexis_vector = extract_hexis(image_data) #
+    
+    # 2. Anwendung des Ordnungsverfahrens B (Ähnlichkeit der Hexis)
+    # B = c_hexis (Vergleich mit Milieu-Normen)
+    norm_congruence = calculate_B(hexis_vector) #
+    
+    # 3. Logische Fixierung durch Operatoren (Handbuch)
+    # mA (Modus), lA (Bedeutung), sA (Sachverhalt), zA (Zuweisung)
+    status = apply_operators(norm_congruence) #
+    
+    # 4. Strukturelle Klassifikation nach D1-D4
+    # D4 definiert die Inklusion D ⊂ C ⊂ A
+    d4_status = verify_d4_inclusion(hexis_vector) #
+    
+    return {
+        "mA": status.mode,
+        "lA": status.meaning,
+        "sA": status.referent,
+        "zA": status.assignment,
+        "D4_Klassifikation": d4_status,
+        "Trigger": "Modul_15_Bedingung" if d4_status == "Misfit" else "Modul_14_Geprüft"
+    }
