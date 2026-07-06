@@ -1,21 +1,51 @@
-# BASALER ANALYSE-CODE (STRUKTUR-DATEN)
+import streamlit as st
 
-# 1. PHÄNOMENOLOGISCHE DATEN (Input für die Demystifizierung)
-hexis = "..." # Beschreibe die Körper-Haltung, den Fokus, die gestische Performanz.
-doxa = "..."  # Beschreibe das Feld, den Kontext, die objektive Struktur des Marktes.
+# Die 15 Prädikaten-Systeme (T1-T15)
+TAXONOMY = {
+    "T1": {"name": "Der kalkulierte Erbe", "stamm": "Ökonomisch"},
+    "T2": {"name": "Der Markt-Akteur", "stamm": "Ökonomisch"},
+    "T3": {"name": "Der strategische Investor", "stamm": "Ökonomisch"},
+    "T4": {"name": "Der materielle Ästhet", "stamm": "Ökonomisch"},
+    "T5": {"name": "Der funktionale Konservative", "stamm": "Ökonomisch"},
+    "T6": {"name": "Der klassische Intellektuelle", "stamm": "Kulturell"},
+    "T7": {"name": "Der Avantgardist", "stamm": "Kulturell"},
+    "T8": {"name": "Der Experte", "stamm": "Kulturell"},
+    "T9": {"name": "Der Bildungs-Bürger", "stamm": "Kulturell"},
+    "T10": {"name": "Der reflektierte Autodidakt", "stamm": "Kulturell"},
+    "T11": {"name": "Der Netzwerker", "stamm": "Sozial"},
+    "T12": {"name": "Der Mimikry-Aufsteiger", "stamm": "Sozial"},
+    "T13": {"name": "Der Broker", "stamm": "Sozial"},
+    "T14": {"name": "Der prekäre Improvisierer", "stamm": "Sozial"},
+    "T15": {"name": "Der System-Spieler", "stamm": "Sozial"}
+}
 
-# 2. SOZIOLOGISCHE TYPOLOGIE (Der Archetyp)
-# Wähle den Typus (T1 - T15), der den Habitus in diesem Kontext logisch präzise abbildet.
-typ = "..." 
+st.title("Soziologische Maschine")
 
-# 3. KONTRASTIVE BEGRÜNDUNG
-# Erläutere, warum das Subjekt den gewählten Typus (z.B. T2) verkörpert 
-# und warum es NICHT den restlichen Typen des Stammes entspricht.
-begruendung = """
-    Identifikation: [Habitus-Kern]
-    Abgrenzung: [Gegenüberstellung zu den anderen 4 Typen des gleichen Stammes]
-"""
+# 1. Bildeingabe
+uploaded_file = st.file_uploader("Bild eingeben...", type=["jpg", "png", "webp"])
 
-# DEBUG / KONTROLL-INSTRUMENT
-print(f"Habitus: {typ}")
-print(f"Logik: {begruendung}")
+# 2. Input-Felder
+hexis = st.text_input("Hexis (Beobachtete Haltung):")
+doxa = st.text_input("Doxa (Beobachteter Kontext):")
+wahl = st.selectbox("Einordnung (Wähle den passenden Typ):", [f"{k}: {v['name']}" for k, v in TAXONOMY.items()])
+
+if st.button("Analysieren"):
+    if uploaded_file:
+        st.image(uploaded_file, use_container_width=True)
+    
+    typ_id = wahl.split(":")[0]
+    
+    st.subheader("Analyse-Ergebnis")
+    
+    # Grid der 15 Typen
+    cols = st.columns(5)
+    for i, (k, v) in enumerate(TAXONOMY.items()):
+        with cols[i % 5]:
+            if k == typ_id:
+                st.markdown(f"**{k}: {v['name']}**") # Schwarz/Fett
+            else:
+                st.markdown(f"<span style='color:grey'>{k}: {v['name']}</span>", unsafe_allow_html=True)
+    
+    st.write("---")
+    st.write(f"**Begründung für {typ_id}:**")
+    st.write(f"Das Subjekt zeigt eine {hexis}-Haltung im {doxa}-Kontext. Dies korrespondiert mit der Kapitalstruktur '{TAXONOMY[typ_id]['stamm']}' des Typus {typ_id}.")
