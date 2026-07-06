@@ -1,52 +1,67 @@
 import streamlit as st
-from openai import OpenAI
-import base64
-from PIL import Image
-import io
 
-# API-Key aus den Streamlit-Secrets
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# --- LOGIK-MODUL: BACKEND ---
 
-def get_image_base64(image):
-    buffered = io.BytesIO()
-    # Bild verkleinern, damit die API nicht überlastet wird
-    image.thumbnail((1024, 1024))
-    image.save(buffered, format="JPEG")
-    return base64.b64encode(buffered.getvalue()).decode('utf-8')
+class FallacyChecker:
+    @staticmethod
+    def detect(observed):
+        errors = []
+        if len(observed) < 2:
+            errors.append("Modul 14: Abstraktions-Falle (Datenbasis zu gering).")
+        return errors
 
-def analysiere_habitus_mit_handbuch(image_base64):
-    handbuch_prompt = """
-    Du bist ein Experte für soziologische Demystifizierung nach Pierre Bourdieu. 
-    Analysiere das Bild basierend auf dem Handbuch: 
-    1. Erkenne die Hexis (Körperhaltung/Stil).
-    2. Bestimme die Doxa (die gesetzten Tatsachen ↓A und die definierte Absenz ↑A).
-    3. Ordne das Bild einem der 15 Habitus-Archetypen zu.
-    4. Achte strikt auf Modul 14 (keine Abstraktions-Falle!) und Modul 15 (Bedingungs-Schleife).
-    Antworte präzise und soziologisch fundiert.
-    """
+class BethTableauEngine:
+    @staticmethod
+    def check_consistency(requirement, observed):
+        # Logik-Kern: Beth-Kalkül (Falsifizierung)
+        req_set = set(requirement.replace(" ", "").split("∧"))
+        obs_set = set(observed)
+        return req_set.issubset(obs_set)
+
+# --- KONFIGURATION: TAXONOMIE ---
+
+TAXONOMY = [
+    {"id": "T1", "name": "Der kalkulierte Erbe", "req": "P_Besitz∧P_Konservierung"},
+    {"id": "T2", "name": "Der Markt-Akteur", "req": "P_Besitz∧P_Expansion"},
+    {"id": "T3", "name": "Der strategische Investor", "req": "P_Besitz∧P_Langzeit-Kalkül"},
+    # ... (T4-T15 analog einfügen)
+]
+
+# --- FRONTEND: STREAMLIT APP ---
+
+st.set_page_config(page_title="Soziologische Maschine", layout="wide")
+st.title("Soziologische Maschine: Demystifizierungs-Apparat")
+
+# Input-Bereich
+hexis = st.text_input("Hexis (Beobachtete Haltung):", placeholder="z.B. konzentriert, fokussiert")
+doxa = st.text_input("Doxa (Beobachteter Kontext):", placeholder="z.B. Finanzmarkt-Volatilität")
+observed_preds = st.multiselect("Prädikate (Daten-Eingabe):", ["P_Besitz", "P_Expansion", "P_Bildung", "P_Relation"])
+
+if st.button("Analysieren"):
+    st.subheader("Analyse-Ergebnisse")
     
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": handbuch_prompt},
-            {"role": "user", "content": [{"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}}]}
-        ]
-    )
-    return response.choices[0].message.content
-
-st.title("Soziologischer Habitus-Demonstrator")
-uploaded_file = st.file_uploader("Bild für Demystifizierung hochladen...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption='Analysiertes Bild', use_container_width=True)
+    # 1. Analyse der Merkmale
+    best_match = None
+    fallacies = FallacyChecker.detect(observed_preds)
     
-    if st.button('Soziologisch demystifizieren'):
-        with st.spinner('Extrahiere Doxa...'):
-            try:
-                base64_image = get_image_base64(image)
-                resultat = analysiere_habitus_mit_handbuch(base64_image)
-                st.success("Analyse abgeschlossen:")
-                st.write(resultat)
-            except Exception as e:
-                st.error(f"Ein Fehler ist aufgetreten: {e}")
+    if fallacies:
+        for f in fallacies: st.warning(f)
+    
+    # 2. Visualisierung: Prädikaten-Baum
+    cols = st.columns(5)
+    for idx, item in enumerate(TAXONOMY):
+        is_consistent = BethTableauEngine.check_consistency(item["req"], observed_preds)
+        
+        with cols[idx % 5]:
+            if is_consistent:
+                st.markdown(f"**<span style='color:black'>{item['id']}: {item['name']}</span>**", unsafe_allow_html=True)
+                best_match = item
+            else:
+                st.markdown(f"<span style='color:grey'>{item['id']}: {item['name']}</span>", unsafe_allow_html=True)
+
+    # 3. Finales Urteil
+    if best_match:
+        st.success(f"Logische Einordnung: {best_match['id']}")
+        st.write(f"**Kurze Begründung:** Die Zuordnung zu {best_match['id']} erfolgt durch Erfüllung des Bedeutungseinschlusses ({best_match['req']}).")
+    else:
+        st.error("Keine logische Konsistenz mit den 15 Archetypen gefunden. Tableau geschlossen.")
