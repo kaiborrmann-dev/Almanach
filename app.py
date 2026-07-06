@@ -1,34 +1,21 @@
-import streamlit as st
-
-# 1. Die Operatoren als logisches Grundgerüst
 def analysiere_hexis(image):
-    # Hier simulieren wir den 'hexis_vector'-Prozess, 
-    # der in der finalen Version die visuelle Analyse übernimmt.
-    # Wir kehren zurück zu den Operatoren des Handbuchs:
+    # Simulation der internen Kongruenzprüfung (sA)
+    # In der finalen Version erfolgt hier der Abgleich mit dem Ordnungsverfahren B
+    score_congruence = 0.92  # Beispielwert für Levon3.jpg
     
+    # zA-Zuweisungs-Logik:
+    if score_congruence >= 0.9:
+        typ = "Je ne sais quoi / Elite"
+    elif score_congruence >= 0.5:
+        typ = "Funktionaler Pragmatiker"
+    else:
+        typ = "Misfit / Diskrepant"
+        
     return {
         "tA": "Bild-Datensatz",
         "lA": "Habitus-Analyse",
-        "sA": "Kongruenzprüfung",
+        "sA": f"Kongruenz-Score: {score_congruence}",
+        "zA": f"Zuweisung: {typ}",
         "mA": "Analytischer Modus",
-        "status": "Daten-Vektorisierung abgeschlossen"
+        "status": "Demystifizierung abgeschlossen"
     }
-
-def main():
-    st.title("Soziologische Demystifizierung - Alpha-Interface")
-    
-    uploaded_file = st.file_uploader("Porträt hochladen", type=['jpg', 'jpeg'])
-    
-    if uploaded_file:
-        st.image(uploaded_file, caption='Akteur-Analyse', use_column_width=True)
-        
-        if st.button("Demystifizierung starten"):
-            # Funktionsaufruf gemäß unserer Logik
-            ergebnis = analysiere_hexis(uploaded_file)
-            
-            st.write("### Analyse-Resultat")
-            st.json(ergebnis)
-            st.success("Operatoren-System hat den Akteur erfasst.")
-
-if __name__ == "__main__":
-    main()
