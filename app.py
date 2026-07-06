@@ -1,42 +1,50 @@
 import streamlit as st
 
-# Die 15 Archetypen mit ihrer logischen Anforderung (Bedeutungseinschluss)
-ARCHETYPEN = {
-    "T1": {"name": "Der kalkulierte Erbe", "anforderung": ["P_Besitz", "P_Konservierung"]},
-    "T2": {"name": "Der Markt-Akteur", "anforderung": ["P_Besitz", "P_Expansion"]},
-    # ... (Ergänzen Sie hier T3-T15 analog)
+# Die 15 Prädikaten-Systeme (T1-T15)
+TAXONOMY = {
+    "T1": {"name": "Der kalkulierte Erbe", "stamm": "Ökonomisch", "abgrenzung": "Konservierung statt Expansion"},
+    "T2": {"name": "Der Markt-Akteur", "stamm": "Ökonomisch", "abgrenzung": "Expansion statt Konservierung"},
+    "T3": {"name": "Der strategische Investor", "stamm": "Ökonomisch", "abgrenzung": "Langzeit-Kalkül statt Repräsentation"},
+    "T4": {"name": "Der materielle Ästhet", "stamm": "Ökonomisch", "abgrenzung": "Repräsentation statt Stabilität"},
+    "T5": {"name": "Der funktionale Konservative", "stamm": "Ökonomisch", "abgrenzung": "Stabilitäts-Sicherung statt Expansion"},
+    "T6": {"name": "Der klassische Intellektuelle", "stamm": "Kulturell", "abgrenzung": "Asketische Distanz statt Grenzüberschreitung"},
+    "T7": {"name": "Der Avantgardist", "stamm": "Kulturell", "abgrenzung": "Grenzüberschreitung statt Tradition"},
+    "T8": {"name": "Der Experte", "stamm": "Kulturell", "abgrenzung": "Wissens-Monopol statt Distanz"},
+    "T9": {"name": "Der Bildungs-Bürger", "stamm": "Kulturell", "abgrenzung": "Tradition statt Wissens-Monopol"},
+    "T10": {"name": "Der reflektierte Autodidakt", "stamm": "Kulturell", "abgrenzung": "Institutionelle Distanz statt Asketik"},
+    "T11": {"name": "Der Netzwerker", "stamm": "Sozial", "abgrenzung": "Zirkulation statt Habitus-Angleichung"},
+    "T12": {"name": "Der Mimikry-Aufsteiger", "stamm": "Sozial", "abgrenzung": "Habitus-Angleichung statt Transaktion"},
+    "T13": {"name": "Der Broker", "stamm": "Sozial", "abgrenzung": "Transaktions-Gestik statt Regel-Manipulation"},
+    "T14": {"name": "Der prekäre Improvisierer", "stamm": "Sozial", "abgrenzung": "Situations-Zwang statt Zirkulation"},
+    "T15": {"name": "Der System-Spieler", "stamm": "Sozial", "abgrenzung": "Regel-Manipulation statt Situations-Zwang"}
 }
 
 st.title("Soziologische Maschine: Demystifizierungs-Apparat")
 
+# Input
 uploaded_file = st.file_uploader("Bild laden...")
-hexis = st.text_input("Hexis (z.B. konzentriert):")
-doxa = st.text_input("Doxa (z.B. Börse):")
-# Hier geben wir die Prädikate als Daten-Basis ein, die das Bild belegen
-prädikate = st.multiselect("Beweis-Prädikate aus Bild:", ["P_Besitz", "P_Expansion", "P_Konservierung", "P_Bildung", "P_Relation"])
+hexis = st.text_input("Hexis (Haltung):")
+doxa = st.text_input("Doxa (Kontext):")
+wahl = st.selectbox("Typus-Zuweisung:", [f"{k}: {v['name']}" for k, v in TAXONOMY.items()])
 
 if st.button("Analysieren"):
-    # Logik-Kern: Welcher Typ wird durch die Prädikate gestützt?
-    match = None
-    for k, v in ARCHETYPEN.items():
-        if set(v["anforderung"]).issubset(set(prädikate)):
-            match = k
-            break # Erster valider Treffer (Wessel'sche Konsistenz)
-
-    st.subheader("Analyse-Ergebnis")
+    if uploaded_file: st.image(uploaded_file, use_container_width=True)
     
-    # Visualisierung
+    typ_id = wahl.split(":")[0]
+    typ_daten = TAXONOMY[typ_id]
+    
+    # Grid-Visualisierung (Schwarz/Grau)
     cols = st.columns(5)
-    for i, (k, v) in enumerate(ARCHETYPEN.items()):
+    for i, (k, v) in enumerate(TAXONOMY.items()):
         with cols[i % 5]:
-            # Nur wenn der Typ logisch durch die Prädikate gedeckt ist, wird er schwarz
-            if match and k == match:
+            if k == typ_id:
                 st.markdown(f"**<span style='color:black'>{k}: {v['name']}</span>**", unsafe_allow_html=True)
             else:
                 st.markdown(f"<span style='color:grey'>{k}: {v['name']}</span>", unsafe_allow_html=True)
-
-    if match:
-        st.write(f"### Begründung für {match}:")
-        st.write(f"Das Bild belegt {prädikate}. Diese erfüllen zwingend den Bedeutungseinschluss von {match}.")
-    else:
-        st.error("Keine logische Konsistenz. Das Bild enthält nicht genügend Prädikate für einen Archetyp.")
+    
+    # Kontrastive Begründung
+    st.write("---")
+    st.write(f"### Analyse-Begründung für {typ_id}")
+    st.write(f"**Habitus-Indikator:** '{hexis}' im Kontext '{doxa}'.")
+    st.write(f"**Stammes-Logik ({typ_daten['stamm']}):** Dieser Typus zeichnet sich durch {typ_daten['abgrenzung']} aus.")
+    st.write(f"**Abgrenzung:** {typ_id} ist spezifisch, da er sich gegen die anderen Typen des Stammes {typ_daten['stamm']} abhebt, indem er das Merkmal '{typ_daten['abgrenzung']}' priorisiert.")
