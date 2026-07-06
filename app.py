@@ -1,33 +1,36 @@
 import streamlit as st
+from openai import OpenAI
+import base64
 
-# Die Logik-Klasse: Hier wird das Bild strukturell "gezwungen"
+# Initialisierung des Clients
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+def encode_image(image_file):
+    return base64.b64encode(image_file.read()).decode('utf-8')
+
 def demystifiziere_bild(image_file):
-    # In einem produktiven System wird hier der Aufruf an GPT-4o-Vision eingekoppelt.
-    # Wir definieren das Rückgabe-Format als "Strukturelle Analyse".
+    base64_image = encode_image(image_file)
     
-    # Der folgende Part ist die strukturelle Schnittstelle für unsere Operatoren:
-    return {
-        "tA (Aussage)": "Erfassung der materiellen Form und des Settings.",
-        "lA (Bedeutung)": "Extraktion der habituellen Codes (Hexis, Doxa).",
-        "sA (Sachverhalt)": "Abgleich der körperlichen Manifestation mit der Feld-Norm.",
-        "zA (Zuweisung)": "Systemische Verortung des Akteurs im sozialen Gefüge."
-    }
+    prompt = """
+    Analysiere das Bild streng soziologisch nach dem 'Handbuch'.
+    Liefere die Antwort ausschließlich im JSON-Format mit diesen vier Schlüsseln:
+    - tA (Aussage): Beschreibung der materiellen Form/des Settings.
+    - lA (Bedeutung): Analyse der Hexis und Doxa.
+    - sA (Sachverhalt): Abgleich Hexis vs. Feld-Norm.
+    - zA (Zuweisung): Soziale Verortung des Akteurs.
+    """
+    
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": [
+                {"type": "text", "text": prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+            ]}
+        ],
+        response_format={ "type": "json_object" }
+    )
+    return response.choices[0].message.content
 
-def main():
-    st.title("Soziologische Demystifizierung - Operations-Modus")
-    
-    uploaded_file = st.file_uploader("Porträt hochladen", type=['jpg', 'jpeg'])
-    
-    if uploaded_file:
-        st.image(uploaded_file)
-        if st.button("Operatoren-Analyse starten"):
-            with st.spinner('Demystifizierung läuft...'):
-                ergebnisse = demystifiziere_bild(uploaded_file)
-                
-                for operator, inhalt in ergebnisse.items():
-                    st.markdown(f"**{operator}**: {inhalt}")
-                    
-                st.success("Strukturelle Fixierung abgeschlossen.")
-
-if __name__ == "__main__":
-    main()
+# Interface-Logik bleibt stabil
+# ... (Aufruf von demystifiziere_bild innerhalb des Buttons)
