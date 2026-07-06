@@ -1,67 +1,51 @@
 import streamlit as st
 
-# --- LOGIK-MODUL: BACKEND ---
+# Die 15 Archetypen-Datenbank
+ARCHETYPEN = {
+    "T1": {"name": "Der kalkulierte Erbe", "kapital": "Ökonomisch"},
+    "T2": {"name": "Der Markt-Akteur", "kapital": "Ökonomisch"},
+    "T3": {"name": "Der strategische Investor", "kapital": "Ökonomisch"},
+    "T4": {"name": "Der materielle Ästhet", "kapital": "Ökonomisch"},
+    "T5": {"name": "Der funktionale Konservative", "kapital": "Ökonomisch"},
+    "T6": {"name": "Der klassische Intellektuelle", "kapital": "Kulturell"},
+    "T7": {"name": "Der Avantgardist", "kapital": "Kulturell"},
+    "T8": {"name": "Der Experte", "kapital": "Kulturell"},
+    "T9": {"name": "Der Bildungs-Bürger", "kapital": "Kulturell"},
+    "T10": {"name": "Der reflektierte Autodidakt", "kapital": "Kulturell"},
+    "T11": {"name": "Der Netzwerker", "kapital": "Sozial"},
+    "T12": {"name": "Der Mimikry-Aufsteiger", "kapital": "Sozial"},
+    "T13": {"name": "Der Broker", "kapital": "Sozial"},
+    "T14": {"name": "Der prekäre Improvisierer", "kapital": "Sozial"},
+    "T15": {"name": "Der System-Spieler", "kapital": "Sozial"}
+}
 
-class FallacyChecker:
-    @staticmethod
-    def detect(observed):
-        errors = []
-        if len(observed) < 2:
-            errors.append("Modul 14: Abstraktions-Falle (Datenbasis zu gering).")
-        return errors
+st.title("Soziologische Maschine")
 
-class BethTableauEngine:
-    @staticmethod
-    def check_consistency(requirement, observed):
-        # Logik-Kern: Beth-Kalkül (Falsifizierung)
-        req_set = set(requirement.replace(" ", "").split("∧"))
-        obs_set = set(observed)
-        return req_set.issubset(obs_set)
+# 1. Bildeingabe
+uploaded_file = st.file_uploader("Bild eingeben...", type=["jpg", "png", "webp"])
 
-# --- KONFIGURATION: TAXONOMIE ---
-
-TAXONOMY = [
-    {"id": "T1", "name": "Der kalkulierte Erbe", "req": "P_Besitz∧P_Konservierung"},
-    {"id": "T2", "name": "Der Markt-Akteur", "req": "P_Besitz∧P_Expansion"},
-    {"id": "T3", "name": "Der strategische Investor", "req": "P_Besitz∧P_Langzeit-Kalkül"},
-    # ... (T4-T15 analog einfügen)
-]
-
-# --- FRONTEND: STREAMLIT APP ---
-
-st.set_page_config(page_title="Soziologische Maschine", layout="wide")
-st.title("Soziologische Maschine: Demystifizierungs-Apparat")
-
-# Input-Bereich
-hexis = st.text_input("Hexis (Beobachtete Haltung):", placeholder="z.B. konzentriert, fokussiert")
-doxa = st.text_input("Doxa (Beobachteter Kontext):", placeholder="z.B. Finanzmarkt-Volatilität")
-observed_preds = st.multiselect("Prädikate (Daten-Eingabe):", ["P_Besitz", "P_Expansion", "P_Bildung", "P_Relation"])
+# 2. Input-Felder
+hexis = st.text_input("Hexis (Beobachtete Haltung):")
+doxa = st.text_input("Doxa (Beobachteter Kontext):")
+wahl = st.selectbox("Einordnung (Wähle den passenden Typ):", [f"{k}: {v['name']}" for k, v in ARCHETYPEN.items()])
 
 if st.button("Analysieren"):
-    st.subheader("Analyse-Ergebnisse")
+    if uploaded_file:
+        st.image(uploaded_file, use_container_width=True)
     
-    # 1. Analyse der Merkmale
-    best_match = None
-    fallacies = FallacyChecker.detect(observed_preds)
+    typ_id = wahl.split(":")[0]
     
-    if fallacies:
-        for f in fallacies: st.warning(f)
+    st.subheader("Analyse-Ergebnis")
     
-    # 2. Visualisierung: Prädikaten-Baum
+    # Grid der 15 Typen
     cols = st.columns(5)
-    for idx, item in enumerate(TAXONOMY):
-        is_consistent = BethTableauEngine.check_consistency(item["req"], observed_preds)
-        
-        with cols[idx % 5]:
-            if is_consistent:
-                st.markdown(f"**<span style='color:black'>{item['id']}: {item['name']}</span>**", unsafe_allow_html=True)
-                best_match = item
+    for i, (k, v) in enumerate(ARCHETYPEN.items()):
+        with cols[i % 5]:
+            if k == typ_id:
+                st.markdown(f"**{k}: {v['name']}**") # Schwarz/Fett
             else:
-                st.markdown(f"<span style='color:grey'>{item['id']}: {item['name']}</span>", unsafe_allow_html=True)
-
-    # 3. Finales Urteil
-    if best_match:
-        st.success(f"Logische Einordnung: {best_match['id']}")
-        st.write(f"**Kurze Begründung:** Die Zuordnung zu {best_match['id']} erfolgt durch Erfüllung des Bedeutungseinschlusses ({best_match['req']}).")
-    else:
-        st.error("Keine logische Konsistenz mit den 15 Archetypen gefunden. Tableau geschlossen.")
+                st.markdown(f"<span style='color:grey'>{k}: {v['name']}</span>", unsafe_allow_html=True)
+    
+    st.write("---")
+    st.write(f"**Begründung für {typ_id}:**")
+    st.write(f"Das Subjekt zeigt eine {hexis}-Haltung im {doxa}-Kontext. Dies korrespondiert mit der Kapitalstruktur '{ARCHETYPEN[typ_id]['kapital']}' des Typus {typ_id}.")
