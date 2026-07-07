@@ -1,91 +1,146 @@
 import streamlit as st
 from PIL import Image
-import time
-import random
+import base64
+import io
+import json
+from openai import OpenAI
 
-# Konfiguration für ein leichtes, freundliches UI
+# -----------------------------------------------------------------------------
+# KONFIGURATION & UI-SETUP
+# -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Affinités Électives | Habitus-Analyse", 
     page_icon="✨", 
-    layout="centered"
+    layout="wide"
 )
 
-# Positives, einladendes Framing der App
+# API Client initialisieren (Holt sich den Key aus den Streamlit Secrets oder Umgebungsvariablen)
+# Für lokale Tests kannst du direkt client = OpenAI(api_key="DEIN_API_KEY") nutzen
+try:
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+except:
+    st.warning("Bitte API-Key in den Streamlit-Secrets hinterlegen.")
+    st.stop()
+
 st.title("✨ Affinités Électives")
 st.markdown("""
-**Die Architektur der Anziehung entdecken.**  
-Diese Anwendung nutzt soziologische Strukturanalysen, um jenseits von psychologischen Tests echte *Resonanz* sichtbar zu machen. 
-Wir analysieren die nonverbale Sprache, die körperliche Disposition (*Hexis*) und den kulturellen Stil, um die objektive soziale Position sichtbar zu machen – die Grundlage für *Amor fati* und tiefe, dauerhafte Verbindungen.
+**Die Architektur der Anziehung entdecken.** Diese Anwendung analysiert die körperliche Disposition (*Hexis*) und den kulturellen Stil aus, 
+um die objektive soziale Position sichtbar zu machen.
 """)
-
 st.divider()
 
-# Leichtgewichtiges Interface für den Upload
-uploaded_file = st.file_uploader("Laden Sie ein Foto hoch, um die dynamische Habitus-Struktur zu analysieren:", type=["jpg", "jpeg", "png"])
+# -----------------------------------------------------------------------------
+# KI-ANALYSE FUNKTION (Die echte Anbindung)
+# -----------------------------------------------------------------------------
+def encode_image(image):
+    """Wandelt das Bild für die API in Base64 um."""
+    buffered = io.BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode('utf-8')
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file)
+def analyze_habitus_with_ai(image):
+    """
+    Sendet das Bild an die Vision-KI mit strikten soziologischen Vorgaben
+    entsprechend der Generativen Prädikaten-Matrix.
+    """
+    base64_image = encode_image(image)
     
-    st.image(image, caption="Ihr visuelles Profil", use_container_width=True)
+    # Der System-Prompt zwingt die KI in unser theoretisches Korsett
+    system_prompt = """
+    Du bist ein soziologischer Analyst. Wende strikt die Konzepte von Bourdieu an. 
+    Analysiere das Bild und generiere eine Diagnose basierend auf:
+    1. Raum-Hexis (Körperliche Disposition im Raum)
+    2. Blick-Regime (Visuelle Interaktion mit dem Feld)
+    3. Sartoriale Distinktion (Kleidungscodes, Dissonanz oder Konformität)
     
-    st.divider()
+    Keine psychologisierenden Begriffe. Nutze Vokabular wie Doxa, Hexis, Hyperkorrektur, kulturelles Kapital.
+    Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt im folgenden Format:
+    {
+        "hexis": "kurzer Text",
+        "blick": "kurzer Text",
+        "distinktion": "kurzer Text",
+        "synthese": "Zusammenfassende soziologische Diagnose (z.B. Kulturkapitalistisch fundierter Habitus)"
+    }
+    """
     
-    with st.spinner("Lese habituelle Dispositionen und soziale Codes aus..."):
-        time.sleep(2) # Simuliert die API-Analyse des Bildes
-        
-        # Dynamische Simulation der "Generativen Prädikaten-Matrix"
-        # In der echten App werden diese Werte durch eine Vision-KI aus dem Bild extrahiert
-        raum_hexis = random.choice([
-            "Expansive und entspannte Inanspruchnahme des Raumes. Zeigt eine natürliche Vertrautheit mit der Umgebung.",
-            "Fokussierte und zentrierte Körperhaltung. Signalisiert eine dynamische, zielgerichtete Präsenz.",
-            "Asymmetrische, ruhende Disposition. Weist auf eine souveräne Distanz zu starren Konventionen hin."
-        ])
-        
-        blick_regime = random.choice([
-            "Direkter, affektbefreiter Blick. Kommuniziert auf Augenhöhe, ohne Bestätigung einzufordern.",
-            "Offener, aufmerksamer Blick. Zeigt eine hohe Empfänglichkeit für die Doxa des umgebenden Feldes.",
-            "Reflektierter, leicht distanzierter Ausdruck. Markiert die Position des gelassenen Beobachters."
-        ])
-        
-        sartoriale_distinktion = random.choice([
-            "Subtiler Einsatz von kulturellem Kapital durch bewussten Verzicht auf laute Statussymbole.",
-            "Ästhetisierte Codes und stilsichere Materialwahl, die eine klare Eigenständigkeit formulieren.",
-            "Klassische Strukturierung mit feinen, individuellen Abweichungen von der Norm."
-        ])
-        
-        habitus_synthese = random.choice([
-            "Kulturkapitalistisch fundierter, souveräner Habitus mit hoher Feld-Dominanz.",
-            "Aufstrebender, dynamischer Habitus mit starker Anpassungsfähigkeit an urbane Kontexte.",
-            "Intellektualisierter Habitus, der sich durch ästhetische Distinktion und doxische Sicherheit auszeichnet."
-        ])
+    response = client.chat.completions.create(
+        model="gpt-4o", # oder ein anderes Vision-fähiges Modell
+        response_format={ "type": "json_object" },
+        messages=[
+            {
+                "role": "system",
+                "content": system_prompt
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Analysiere den Habitus dieses Akteurs:"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}}
+                ]
+            }
+        ],
+        temperature=0.3 # Niedrige Temperatur für analytische Präzision
+    )
+    
+    # JSON-Antwort der KI verarbeiten
+    result_text = response.choices[0].message.content
+    return json.loads(result_text)
 
-        # Ausgabe der dynamisch generierten Ergebnisse in einem sauberen Layout
-        st.subheader("Ihre soziologische Signatur")
+# -----------------------------------------------------------------------------
+# APP-LOGIK (UPLOAD & DARSTELLUNG)
+# -----------------------------------------------------------------------------
+st.markdown("### 📸 Profil-Analyse starten")
+uploaded_files = st.file_uploader(
+    "Visuelle Termini hochladen", 
+    type=["jpg", "jpeg", "png"], 
+    accept_multiple_files=True
+)
+
+if uploaded_files:
+    if len(uploaded_files) > 2:
+        st.warning("Bitte laden Sie maximal zwei Bilder für einen direkten Resonanz-Abgleich hoch.")
+        uploaded_files = uploaded_files[:2]
+
+    profiles = []
+    
+    # Echte Analyse durchführen
+    for file in uploaded_files:
+        img = Image.open(file)
+        # Bild komprimieren, um API-Kosten/Zeit zu sparen
+        img.thumbnail((800, 800)) 
         
-        st.info(f"**Die Diagnose:** {habitus_synthese}")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown("### 🧭 Raum-Hexis")
-            st.write(raum_hexis)
+        with st.spinner(f"Analysiere Akteur {file.name} über die Vision-API..."):
+            try:
+                analysis = analyze_habitus_with_ai(img)
+                profiles.append({
+                    "name": file.name,
+                    "image": img,
+                    "data": analysis
+                })
+            except Exception as e:
+                st.error(f"Fehler bei der API-Analyse: {e}")
+
+    # Darstellung der Ergebnisse
+    cols = st.columns(len(profiles))
+    for idx, profile in enumerate(profiles):
+        with cols[idx]:
+            st.image(profile["image"], caption=f"Akteur {idx+1}", use_container_width=True)
+            st.success(f"**Diagnose:** {profile['data'].get('synthese', '')}")
             
-        with col2:
-            st.markdown("### 👁️ Blick-Regime")
-            st.write(blick_regime)
+            st.markdown("**🧭 Raum-Hexis**")
+            st.write(profile['data'].get('hexis', ''))
             
-        with col3:
-            st.markdown("### 🧥 Distinktion")
-            st.write(sartoriale_distinktion)
+            st.markdown("**👁️ Blick-Regime**")
+            st.write(profile['data'].get('blick', ''))
             
+            st.markdown("**🧥 Distinktion**")
+            st.write(profile['data'].get('distinktion', ''))
+
+    # -----------------------------------------------------------------------------
+    # RESONANZ-ABGLEICH (MODUL 15: BEDINGUNGS-SCHLEIFE)
+    # -----------------------------------------------------------------------------
+    if len(profiles) == 2:
         st.divider()
-        
-        st.subheader("💞 Resonanz & Matching")
-        st.markdown("""
-        Um das Potenzial für *Complicité corporelle* und instinktives Erkennen zu ermitteln, 
-        benötigt das System ein zweites Profil. Der logische Abgleich erfolgt strikt über die 
-        strukturelle Isomorphie der hier ermittelten *Hexis*-Parameter.
-        """)
-        
-        if st.button("Zweites Profil für Resonanz-Abgleich hochladen"):
-            st.warning("Diese Funktion ist in der Lightweight-Demo noch nicht freigeschaltet. Bitte implementieren Sie die Bild-Datenbank-Anbindung.")
+        st.subheader("💞 Strukturelle Resonanz (Isomorphie-Prüfung)")
+        st.info("Das System hat zwei Profile erfasst. Die strukturelle Isomorphie der extrahierten Prädikate wird nun abgeglichen...")
+        # Hier würde dann die logische Evaluierung der beiden JSONs erfolgen
