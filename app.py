@@ -139,8 +139,74 @@ if uploaded_files:
     # -----------------------------------------------------------------------------
     # RESONANZ-ABGLEICH (MODUL 15: BEDINGUNGS-SCHLEIFE)
     # -----------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------
+    # KI-FUNKTION FÜR DAS MATCHING (MODUL 15)
+    # Diese Funktion gehört oben zu den anderen Definitionen
+    # -----------------------------------------------------------------------------
+    def evaluate_resonance_with_ai(data1, data2):
+        """
+        Übergibt die beiden extrahierten Prädikaten-Bündel an die KI, 
+        um die strukturelle Isomorphie zu berechnen.
+        """
+        system_prompt = """
+        Du bist ein soziologischer Analyst. Führe Modul 15 (Bedingungs-Schleife) aus.
+        Vergleiche zwei Habitus-Profile auf ihre strukturelle Isomorphie. 
+        Achte strikt auf Modul 14 (Abstraktions-Falle): Keine psychologischen Vergleiche. 
+        Analysiere ausschließlich die Kompatibilität der habituellen Dispositionen (Raum-Hexis, Blick, Distinktion).
+        Beurteile die Wahrscheinlichkeit für 'Amor fati' (Bejahung der sozialen Flugbahn des anderen) und 'Complicité corporelle' (körperliches Einverständnis).
+        
+        Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt in diesem Format:
+        {
+            "score": <Zahl von 0 bis 100, Grad der Isomorphie>,
+            "analyse": "<Soziologische Begründung der Resonanz oder Dissonanz>"
+        }
+        """
+        
+        prompt_content = f"""
+        Profil 1:
+        {json.dumps(data1, ensure_ascii=False)}
+        
+        Profil 2:
+        {json.dumps(data2, ensure_ascii=False)}
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-4o", 
+            response_format={ "type": "json_object" },
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt_content}
+            ],
+            temperature=0.2 
+        )
+        
+        return json.loads(response.choices[0].message.content)
+
+    # -----------------------------------------------------------------------------
+    # RESONANZ-ABGLEICH (MODUL 15: BEDINGUNGS-SCHLEIFE) IN DER APP
+    # -----------------------------------------------------------------------------
     if len(profiles) == 2:
         st.divider()
         st.subheader("💞 Strukturelle Resonanz (Isomorphie-Prüfung)")
-        st.info("Das System hat zwei Profile erfasst. Die strukturelle Isomorphie der extrahierten Prädikate wird nun abgeglichen...")
-        # Hier würde dann die logische Evaluierung der beiden JSONs erfolgen
+        st.info("Das System gleicht nun die generativen Prädikaten-Bündel ab...")
+        
+        with st.spinner("Berechne Wahrscheinlichkeit für Amor fati und Complicité corporelle..."):
+            try:
+                # Echter KI-Abgleich der beiden Profile
+                resonance_result = evaluate_resonance_with_ai(profiles[0]["data"], profiles[1]["data"])
+                score = resonance_result.get("score", 0)
+                analyse_text = resonance_result.get("analyse", "Keine Analyse verfügbar.")
+                
+                # Fortschrittsbalken für den Score
+                st.progress(score / 100)
+                
+                # Farbliche und inhaltliche Abstufung je nach Isomorphie-Grad
+                if score >= 85:
+                    st.success(f"**Hohe Isomorphie ({score}% Resonanz):** {analyse_text}")
+                elif score >= 65:
+                    st.warning(f"**Partielle Resonanz ({score}% Resonanz):** {analyse_text}")
+                else:
+                    st.error(f"**Habituelle Dissonanz ({score}% Resonanz):** {analyse_text}")
+                    
+            except Exception as e:
+                st.error(f"Fehler bei der Berechnung der Resonanz: {e}")
