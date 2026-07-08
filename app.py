@@ -151,4 +151,4 @@ if uploaded_files:
     # Profile darstellen
     cols = st.columns(len(profiles))
     for idx, profile in enumerate(profiles):
-        with cols
+        with cols[idx]:
