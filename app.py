@@ -11,7 +11,7 @@ st.write("---")
 # Später laden wir das dynamisch aus deiner habitus_atlas_100.json
 PAAR_DATABASE = [
     {"id": 1, "name": "Amal & George Clooney", "cat": "Global Elite / Intellektuell"},
-    {"id": 2, "name": "Victoria & David Beckham", "cat: "Power-Duo / Lifestyle-Brand"},
+    {"id": 2, "name": "Victoria & David Beckham", "cat": "Power-Duo / Lifestyle-Brand"},
     {"id": 3, "name": "Beyoncé & Jay-Z", "cat": "Kulturelle Hegemonie / Industrie"},
     {"id": 4, "name": "Michelle & Barack Obama", "cat": "Moralisch-Institutionelle Elite"},
     {"id": 5, "name": "Zendaya & Tom Holland", "cat": "Next-Gen Pop / Nahbar"},
