@@ -18,6 +18,24 @@ except Exception:
 
 ATLAS_FILE = "habitus_atlas_100.json"
 
+# --- ECHTE FALLBACK-DATEN (Falls die API fehlschlägt oder das JSON verzerrt ist) ---
+FALLBACK_DATABASE = [
+    {"id": 1, "name": "Amal & George Clooney", "cat": "Global Elite / Intellektuell"},
+    {"id": 2, "name": "Victoria & David Beckham", "cat": "Power-Duo / Lifestyle-Brand"},
+    {"id": 3, "name": "Beyoncé & Jay-Z", "cat": "Kulturelle Hegemonie / Industrie"},
+    {"id": 4, "name": "Michelle & Barack Obama", "cat": "Moralisch-Institutionelle Elite"},
+    {"id": 5, "name": "Zendaya & Tom Holland", "cat": "Next-Gen Pop / Nahbar"},
+    {"id": 6, "name": "Prinz Harry & Meghan Markle", "cat": "Disrupte Aristokratie / Expressiv"},
+    {"id": 7, "name": "Greta Gerwig & Noah Baumbach", "cat": "Intellektuelles Kino / Arthouse"},
+    {"id": 8, "name": "Lauren Sánchez & Jeff Bezos", "cat": "Jetset-Kapitalismus / Performance"},
+    {"id": 9, "name": "Priscilla Chan & Mark Zuckerberg", "cat": "Rationelle Tech-Philanthropie"},
+    {"id": 10, "name": "Taylor Swift & Travis Kelce", "cat": "Hyper-Mainstream Hegemonie"},
+    {"id": 11, "name": "Robert Habeck & Andrea Paluch", "cat": "Bürgerlich-Pragmatischer Diskurs"},
+    {"id": 12, "name": "Rihanna & A$AP Rocky", "cat": "Avantgarde Pop / Street Culture"},
+    {"id": 13, "name": "Eva Mendes & Ryan Gosling", "cat": "Diskrete Hollywood-Symmetrie"},
+    {"id": 14, "name": "Penélope Cruz & Javier Bardem", "cat": "Expressives Charakter-Kino"}
+]
+
 # --- AUTOMATISIERTE OPENAI PIPELINE ---
 def generate_zeitgeist_atlas():
     AXES_DEFINITION = """
@@ -34,85 +52,85 @@ def generate_zeitgeist_atlas():
     Kriterien für die Paarauswahl:
     - Beide Personen müssen leben.
     - Sie müssen aus verschiedenen Feldern stammen (Tech, Politik, Kunst, Sport, globale Elite, Popkultur).
-    - Die Auswahl muss den gesamten sozialen Raum abdecken (von Trash-Pop bis Arthouse-Elite).
 
-    Für jedes Paar musst du die öffentliche Wahrnehmung ihrer Beziehungs-Architektur auf einer Skala von 1 bis 10 für die folgenden vier Achsen bewerten:
+    Für jedes Paar musst du die öffentliche Wahrnehmung auf einer Skala von 1 bis 10 für die folgenden vier Achsen bewerten:
     {AXES_DEFINITION}
 
-    Gib das Ergebnis AUSSCHLIESSLICH als valides JSON-Array aus. Keine Erklärung, kein Markdown-Inhalt außerhalb des JSON-Blocks.
+    Gib das Ergebnis AUSSCHLIESSLICH als valides JSON-Array aus. Keine Erklärung, kein Markdown außerhalb des JSON-Blocks.
 
     JSON-Format:
     [
       {{
         "id": 1,
         "name": "Name 1 & Name 2",
-        "cat": "z.B. Tech-Philanthropie",
+        "cat": "Kategorie-Typus",
         "v": [5, 9, 8, 10]
       }}
     ]
     """
     
-    with st.spinner("🤖 Generiere und eiche 100 lebende Paare via OpenAI..."):
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": "Generiere die vollständige Matrix mit genau 100 lebenden Paaren und ihren soziologischen Signaturen."}
-            ],
-            temperature=0.3,
-            response_format={"type": "json_object"}
-        )
-        
-        content = response.choices[0].message.content
-        if content.startswith("```json"):
-            content = content.split("```json")[1].split("```")[0].strip()
-        elif content.startswith("```"):
-            content = content.split("```")[1].split("```")[0].strip()
-        
-        raw_data = json.loads(content)
-        
-        # Flexibles Parsing: Falls das Modell ein Objekt mit einem Unter-Key (z.B. {"paare": [...]}) liefert
-        if isinstance(raw_data, dict):
-            for key, val in raw_data.items():
-                if isinstance(val, list):
-                    raw_data = val
-                    break
-        
-        # Sicherstellen, dass es nun eine Liste ist
-        if not isinstance(raw_data, list):
+    with st.spinner("🤖 Generiere 100 lebende Paare via OpenAI..."):
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": "Generiere genau 100 lebende Paare als JSON-Liste."}
+                ],
+                temperature=0.3,
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            if content.startswith("```json"):
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif content.startswith("```"):
+                content = content.split("```")[1].split("```")[0].strip()
+            
+            raw_data = json.loads(content)
+            
+            # Unter-Keys auflösen falls vorhanden
             if isinstance(raw_data, dict):
+                for key, val in raw_data.items():
+                    if isinstance(val, list):
+                        raw_data = val
+                        break
+            
+            if not isinstance(raw_data, list) and isinstance(raw_data, dict):
                 raw_data = list(raw_data.values())
-            else:
-                raise ValueError("Unerwartetes JSON-Format von OpenAI empfangen.")
 
-        # IDs normalisieren und sicherstellen, dass alle Felder existieren
-        clean_data = []
-        for index, item in enumerate(raw_data):
-            if isinstance(item, dict):
-                clean_data.append({
-                    "id": item.get("id", index + 1),
-                    "name": item.get("name", "Unbekanntes Paar"),
-                    "cat": item.get("cat", "Allgemein"),
-                    "v": item.get("v", [5, 5, 5, 5])
-                })
+            clean_data = []
+            for index, item in enumerate(raw_data):
+                if isinstance(item, dict) and ("name" in item or "paar" in item):
+                    clean_data.append({
+                        "id": int(item.get("id", index + 1)),
+                        "name": item.get("name", item.get("paar", "Unbekannt")),
+                        "cat": item.get("cat", item.get("kategorie", "Allgemein")),
+                        "v": item.get("v", item.get("vektor", [5, 5, 5, 5]))
+                    })
+            
+            if len(clean_data) > 0:
+                with open(ATLAS_FILE, "w", encoding="utf-8") as f:
+                    json.dump(clean_data, f, indent=2, ensure_ascii=False)
+                return clean_data
+        except Exception as api_err:
+            st.sidebar.warning(f"API Details übersprungen: {api_err}")
+            
+    return FALLBACK_DATABASE
 
-        with open(ATLAS_FILE, "w", encoding="utf-8") as f:
-            json.dump(clean_data, f, indent=2, ensure_ascii=False)
-        return clean_data
-
-# --- LADE ODER GENERIERE DATEN ---
+# --- DATEN BEZIEHEN ---
 if os.path.exists(ATLAS_FILE):
-    with open(ATLAS_FILE, "r", encoding="utf-8") as f:
-        PAAR_DATABASE = json.load(f)
-else:
     try:
-        PAAR_DATABASE = generate_zeitgeist_atlas()
-        st.success("🎉 Referenz-Atlas erfolgreich via API initialisiert!")
-    except Exception as e:
-        st.error(f"Fehler bei der API-Generierung: {e}")
-        PAAR_DATABASE = []
+        with open(ATLAS_FILE, "r", encoding="utf-8") as f:
+            PAAR_DATABASE = json.load(f)
+        if not PAAR_DATABASE or len(PAAR_DATABASE) == 0:
+            PAAR_DATABASE = FALLBACK_DATABASE
+    except Exception:
+        PAAR_DATABASE = FALLBACK_DATABASE
+else:
+    PAAR_DATABASE = generate_zeitgeist_atlas()
 
-# --- REALE TOPOLOGISCHE USER-DATENBANK (Simulierter Graph) ---
+# --- REALE TOPOLOGISCHE USER-DATENBANK ---
 MOCK_USERS_GRAPH = [
     {"name": "Konrad (34)", "choices": [1, 4, 11]},
     {"name": "Elena (29)", "choices": [3, 5, 12]},
@@ -132,22 +150,16 @@ with col1:
             os.remove(ATLAS_FILE)
         st.rerun()
 
-    # Optionen-Dictionary sicher aus der Datenbank aufbauen
+    # Optionen erstellen
     paar_options = {}
-    if isinstance(PAAR_DATABASE, list):
-        for p in PAAR_DATABASE:
-            if isinstance(p, dict) and "id" in p:
-                paar_options[p["id"]] = f"{p.get('name', 'Unbekannt')} ({p.get('cat', 'Allgemein')})"
+    for p in PAAR_DATABASE:
+        paar_options[p["id"]] = f"{p['name']} ({p['cat']})"
 
-    if paar_options:
-        selected_ids = st.multiselect(
-            "Wähle deine 3 strukturellen Anker-Modelle:",
-            options=list(paar_options.keys()),
-            format_func=lambda x: paar_options[x]
-        )
-    else:
-        st.warning("Keine Paare im Atlas verfügbar. Bitte klicke auf 'Neu eichen'.")
-        selected_ids = []
+    selected_ids = st.multiselect(
+        "Wähle deine 3 strukturellen Anker-Modelle:",
+        options=list(paar_options.keys()),
+        format_func=lambda x: paar_options[x]
+    )
 
 with col2:
     st.header("2. Topologische Auswertung")
