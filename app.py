@@ -11,12 +11,10 @@ st.subheader("Soziologisches Modell-Matching via Graph-Topologie (Projekt Almana
 st.write("---")
 
 # --- INITIALISIERUNG OPENAI CLIENT ---
-# Streamlit zieht sich den Key automatisch aus den "Secrets" (Einstellungen im Streamlit Dashboard)
-# Alternativ nutzt es die lokale Umgebungsvariable OPENAI_API_KEY
 try:
     client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 except Exception:
-    client = OpenAI() # Fällt auf os.environ zurück
+    client = OpenAI()
 
 ATLAS_FILE = "habitus_atlas_100.json"
 
@@ -66,19 +64,41 @@ def generate_zeitgeist_atlas():
         )
         
         content = response.choices[0].message.content
-        # Markdown-Säuberung falls nötig
         if content.startswith("```json"):
             content = content.split("```json")[1].split("```")[0].strip()
+        elif content.startswith("```"):
+            content = content.split("```")[1].split("```")[0].strip()
         
-        data = json.loads(content)
-        if isinstance(data, dict):
-            key = list(data.keys())[0]
-            data = data[key]
-            
-        # Speichern für zukünftige Aufrufe
+        raw_data = json.loads(content)
+        
+        # Flexibles Parsing: Falls das Modell ein Objekt mit einem Unter-Key (z.B. {"paare": [...]}) liefert
+        if isinstance(raw_data, dict):
+            for key, val in raw_data.items():
+                if isinstance(val, list):
+                    raw_data = val
+                    break
+        
+        # Sicherstellen, dass es nun eine Liste ist
+        if not isinstance(raw_data, list):
+            if isinstance(raw_data, dict):
+                raw_data = list(raw_data.values())
+            else:
+                raise ValueError("Unerwartetes JSON-Format von OpenAI empfangen.")
+
+        # IDs normalisieren und sicherstellen, dass alle Felder existieren
+        clean_data = []
+        for index, item in enumerate(raw_data):
+            if isinstance(item, dict):
+                clean_data.append({
+                    "id": item.get("id", index + 1),
+                    "name": item.get("name", "Unbekanntes Paar"),
+                    "cat": item.get("cat", "Allgemein"),
+                    "v": item.get("v", [5, 5, 5, 5])
+                })
+
         with open(ATLAS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        return data
+            json.dump(clean_data, f, indent=2, ensure_ascii=False)
+        return clean_data
 
 # --- LADE ODER GENERIERE DATEN ---
 if os.path.exists(ATLAS_FILE):
@@ -90,10 +110,9 @@ else:
         st.success("🎉 Referenz-Atlas erfolgreich via API initialisiert!")
     except Exception as e:
         st.error(f"Fehler bei der API-Generierung: {e}")
-        # Fallback auf minimalen Kern, damit die App nicht crasht
-        PAAR_DATABASE = [{"id": 1, "name": "Amal & George Clooney", "cat": "Global Elite"}]
+        PAAR_DATABASE = []
 
-# --- REALE TOPOLOGISCHE USER-DATENBANK (Simuliert) ---
+# --- REALE TOPOLOGISCHE USER-DATENBANK (Simulierter Graph) ---
 MOCK_USERS_GRAPH = [
     {"name": "Konrad (34)", "choices": [1, 4, 11]},
     {"name": "Elena (29)", "choices": [3, 5, 12]},
@@ -108,19 +127,27 @@ with col1:
     st.header("1. Wähle exakt 3 Paare")
     st.caption("Welche Beziehungsarchitektur spricht dich strukturell an?")
     
-    # Dynamischer Button zum manuellen Neu-Eichen
     if st.button("🔄 Atlas via OpenAI neu eichen"):
         if os.path.exists(ATLAS_FILE):
             os.remove(ATLAS_FILE)
         st.rerun()
 
-    # Dropdown-Auswahl speist sich nun direkt aus den 100 generierten Paaren
-    paar_options = {p["id"]: f"{p['name']} ({p['cat']})" for p in PAAR_DATABASE}
-    selected_ids = st.multiselect(
-        "Wähle deine 3 strukturellen Anker-Modelle:",
-        options=list(paar_options.keys()),
-        format_func=lambda x: paar_options[x]
-    )
+    # Optionen-Dictionary sicher aus der Datenbank aufbauen
+    paar_options = {}
+    if isinstance(PAAR_DATABASE, list):
+        for p in PAAR_DATABASE:
+            if isinstance(p, dict) and "id" in p:
+                paar_options[p["id"]] = f"{p.get('name', 'Unbekannt')} ({p.get('cat', 'Allgemein')})"
+
+    if paar_options:
+        selected_ids = st.multiselect(
+            "Wähle deine 3 strukturellen Anker-Modelle:",
+            options=list(paar_options.keys()),
+            format_func=lambda x: paar_options[x]
+        )
+    else:
+        st.warning("Keine Paare im Atlas verfügbar. Bitte klicke auf 'Neu eichen'.")
+        selected_ids = []
 
 with col2:
     st.header("2. Topologische Auswertung")
