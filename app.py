@@ -91,15 +91,15 @@ target_k2 = (sel1["K2"] + sel2["K2"] + sel3["K2"]) / 3
 
 archetypes_json = json.dumps(archetypes)
 
-# HTML-Code mit String-Verknüpfung im JS-Teil (ohne f-string-Kollision)
-html_code = f"""
+# HTML-Code als normaler String (kein f-string mehr), um jeden SyntaxError auszuschließen
+html_code = """
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
-        body {{
+        body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: transparent;
             display: flex;
@@ -107,16 +107,16 @@ html_code = f"""
             align-items: center;
             margin: 0;
             color: #3c4043;
-        }}
-        #map-container {{
+        }
+        #map-container {
             position: relative;
             width: 600px;
             height: 400px;
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }}
-        .tooltip {{
+        }
+        .tooltip {
             position: absolute;
             text-align: center;
             padding: 8px 12px;
@@ -131,14 +131,14 @@ html_code = f"""
             margin-top: -10px;
             z-index: 10;
             white-space: nowrap;
-        }}
-        .stats {{
+        }
+        .stats {
             display: flex;
             justify-content: center;
             gap: 60px;
             margin-top: 15px;
             font-size: 14px;
-        }}
+        }
     </style>
 </head>
 <body>
@@ -154,9 +154,10 @@ html_code = f"""
     </div>
 
     <script>
-        const archetypes = {archetypes_json};
-        const targetK1 = {target_k1};
-        const targetK2 = {target_k2};
+        // Python injektiert hier direkt die Variablen via f-string Ersatz außerhalb des großen Blocks
+        const archetypes = __ARCHETYPES_JSON__;
+        const targetK1 = __TARGET_K1__;
+        const targetK2 = __TARGET_K2__;
 
         const width = 600;
         const height = 400;
@@ -180,9 +181,9 @@ html_code = f"""
            .style("stroke-dasharray", "4,4");
 
         const keys = Object.keys(archetypes);
-        let nodes = keys.map((key) => {{
+        let nodes = keys.map((key) => {
             const item = archetypes[key];
-            return {{
+            return {
                 key: key,
                 name: item.name,
                 K1: item.K1,
@@ -190,10 +191,10 @@ html_code = f"""
                 r: 5,
                 color: '#1a73e8',
                 match: 50
-            }};
-        }});
+            };
+        });
 
-        nodes.push({{ 
+        nodes.push({ 
             key: 'you', 
             name: 'YOU', 
             r: 16, 
@@ -217,21 +218,21 @@ html_code = f"""
             .attr("r", d => d.r)
             .attr("fill", d => d.color)
             .style("cursor", d => d.key === 'you' ? "default" : "pointer")
-            .on("mouseover", function(event, d) {{
-                if (d.key !== 'you') {{
+            .on("mouseover", function(event, d) {
+                if (d.key !== 'you') {
                     d3.select(this).attr("r", 8).attr("fill", "#1557b0");
                     tooltip.style("opacity", 1)
                            .html("<strong>" + d.name + "</strong><br>Strukturelle Nähe: " + d.match.toFixed(1) + "%")
                            .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
                            .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
                 }
-            }})
-            .on("mouseout", function(event, d) {{
-                if (d.key !== 'you') {{
+            })
+            .on("mouseout", function(event, d) {
+                if (d.key !== 'you') {
                     d3.select(this).attr("r", d.r).attr("fill", d.color);
                     tooltip.style("opacity", 0);
                 }
-            }});
+            });
 
         svg.append("text")
             .attr("x", width / 2)
@@ -244,23 +245,23 @@ html_code = f"""
             .style("font-weight", "bold")
             .style("pointer-events", "none");
 
-        function ticked() {{
+        function ticked() {
             nodeElements
                 .attr("cx", d => d.key === 'you' ? width / 2 : d.x)
                 .attr("cy", d => d.key === 'you' ? height / 2 : d.y);
-        }}
+        }
 
         let totalMatch = 0;
-        nodes.forEach(n => {{
-            if (n.key !== 'you') {{
+        nodes.forEach(n => {
+            if (n.key !== 'you') {
                 const diffK1 = Math.abs(n.K1 - targetK1);
                 const diffK2 = Math.abs(n.K2 - targetK2);
                 const totalDiff = Math.sqrt(diffK1 * diffK1 + diffK2 * diffK2);
                 const match = Math.max(5, Math.min(98, 100 - (totalDiff / 4.24) * 90));
                 n.match = match;
                 totalMatch += match;
-            }}
-        }});
+            }
+        });
 
         const avgMatch = totalMatch / (nodes.length - 1);
         document.getElementById('match-val').innerText = avgMatch.toFixed(2) + '%';
@@ -272,5 +273,10 @@ html_code = f"""
 </body>
 </html>
 """
+
+# Sichere Übergabe der Python-Werte via einfache String-Ersetzung (100% f-string fehlerfrei)
+html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
+html_code = html_code.replace("__TARGET_K1__", str(target_k1))
+html_code = html_code.replace("__TARGET_K2__", str(target_k2))
 
 components.html(html_code, height=480)
