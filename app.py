@@ -136,15 +136,21 @@ html_code = """
             margin-top: 15px;
             font-size: 14px;
             background: #f8f9fa;
-            padding: 15px 20px;
+            padding: 20px;
             border-radius: 8px;
             border: 1px solid #dadce0;
             width: 560px;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         .highlight-name {
             color: #1a73e8;
             font-weight: 600;
+        }
+        .insight-block {
+            margin-top: 10px;
+            padding-left: 12px;
+            border-left: 3px solid #1a73e8;
+            color: #202124;
         }
     </style>
 </head>
@@ -155,7 +161,7 @@ html_code = """
     </div>
     
     <div class="explanation-panel" id="explanation-text">
-        <strong>Weißt du, was deren Beziehung gemeinsam hat?</strong><br>
+        <strong>Weißt du, was deren Beziehung gemeinsam hat?</strong><br><br>
         Lade Erklärung...
     </div>
 
@@ -260,22 +266,27 @@ html_code = """
                 return activeSelection.includes(d.key) ? 10 : 6;
             });
 
-            // Soziologische Übersetzung in einfache, elegante Erklärungen
+            // Grammatikalisch saubere soziologische Übersetzungen
             const k1_text = targetK1 < 1.7 ? "eine tiefe, gleichberechtigte Partnerschaft auf Augenhöhe ohne versteckte Machtkämpfe" :
-                            targetK1 < 2.5 ? "eine klare Struktur mit einer klaren Rollenverteilung und gegenseitiger Führung" :
-                            targetK1 < 3.5 ? "eine intensive, fast bedingungslose Verschmelzung, bei der die Grenzen verschwimmen" :
-                            "absolute Eigenständigkeit zweier starker Individuen, die sich freiwillig ergänzen";
+                            targetK1 < 2.5 ? "eine klare Struktur mit einer definierten Rollenverteilung und gegenseitiger Führung" :
+                            targetK1 < 3.5 ? "eine intensive, fast bedingungslose Verschmelzung, bei der die Grenzen zwischen den Partnern verschwimmen" :
+                            "absolute Eigenständigkeit zweier starker Individuen, die sich völlig freiwillig ergänzen";
 
-            const k2_text = targetK2 < 1.7 ? "einen hermetisch abgeschirmten Rückzugsort nur für euch beide, abgeschottet von der Außenwelt" :
-                            targetK2 < 2.5 ? "eine bewusste Inszenierung nach außen – eure Beziehung hat auch eine repräsentative gesellschaftliche Funktion" :
-                            targetK2 < 3.5 ? "einen bewussten Bruch mit Konventionen; ihr lebt nach euren eigenen, unkonventionellen Regeln" :
-                            "völlige Offenheit und die nahtlose Einbindung in ein großes, gemeinsames soziales Netzwerk";
+            const k2_text = targetK2 < 1.7 ? "einen hermetisch abgeschirmten Rückzugsort nur für euch beide, abgeschottet von der äußeren Welt" :
+                            targetK2 < 2.5 ? "eine bewusste Inszenierung nach außen – eure Beziehung erfüllt auch eine wichtige repräsentative Funktion" :
+                            targetK2 < 3.5 ? "einen bewussten Bruch mit gesellschaftlichen Konventionen; ihr lebt nach euren eigenen Regeln" :
+                            "völlige Offenheit und die nahtlose Einbindung in ein gemeinsames, soziales Netzwerk";
 
             const namesList = activeSelection.map(k => '<span class="highlight-name">' + archetypes[k].name + '</span>').join(', ');
 
             document.getElementById('explanation-text').innerHTML = 
-                "<strong>3. Weißt du, was deren Beziehung gemeinsam hat?</strong><br><br>" +
-                "Deine aktuellen Anker (<strong>" + namesList + "</strong>) zeigen: Du sehnst dich im Kern nach <strong>" + k1_text + "</strong>, kombiniert mit <strong>" + k2_text + "</strong>.";
+                "<strong>3. Weißt du, was deren Beziehung gemeinsam hat?</strong><br>" +
+                "<span style='color: #5f6368; font-size: 13px;'>Deine aktuellen Anker: " + namesList + "</span><br><br>" +
+                "Im Kern sehnst du dich nach:<br>" +
+                "<div class='insight-block'>" +
+                "• <strong>Binnen-Dynamik:</strong> " + k1_text + ".<br>" +
+                "• <strong>Außengrenze:</strong> " + k2_text + "." +
+                "</div>";
 
             simulation.alpha(0.5).restart();
         }
@@ -289,4 +300,4 @@ html_code = """
 html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
 html_code = html_code.replace("__INITIAL_SELECTION__", initial_selection_json)
 
-components.html(html_code, height=560)
+components.html(html_code, height=580)
