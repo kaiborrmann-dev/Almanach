@@ -69,6 +69,38 @@ archetypes = {
     "Kunis_Kutcher": {"K1": 4, "K2": 4, "name": "Mila Kunis & Ashton Kutcher"}
 }
 
+# Funktion zur Generierung eines 6-7 Sätze langen psychologischen Essays im Backend
+def generate_sociological_essay(k1, k2, names):
+    # K1: 1=Egalitär, 2=Asymmetrisch, 3=Symbiotisch, 4=Autonom
+    # K2: 1=Hermetisch, 2=Repräsentativ, 3=Subversiv, 4=Offen
+    
+    # Textbausteine für K1 (Binnen-Dynamik)
+    k1_texts = {
+        1: "Auf der Ebene der Binnen-Dynamik zeigt deine Auswahl eine radikale Sehnsucht nach purer Symmetrie und Augenhöhe. Du lehnst verdeckte Machtkämpfe oder hierarchische Rollenmuster kategorisch ab. Stattdessen basiert das Fundament auf absolutem Respekt und gegenseitigem Einverständnis. Niemand führt hier Regie über den anderen, sondern beide Partner bilden ein gleichwertiges Team. Diese Konstellation sucht die intellektuelle und emotionale Ergänzung im reinen Gleichgewicht.",
+        2: "Deine gewählten Anker offenbaren ein klares Bewusstsein für Rollenverteilung und strukturiertes Gefälle. In deiner Wunsch-Architektur darf es durchaus eine Führung und eine Gefolgschaft geben, solange diese Rollen klar definiert und für beide Seiten stimmig sind. Dieses Modell setzt auf Stabilität durch klare Zuständigkeiten, bei denen Reibung gezielt zur Belebung der Dynamik genutzt wird. Es ist eine bewusste Entscheidung gegen die oft anstrengende Gleichmacherei.",
+        3: "Im Zentrum deiner Sehnsucht steht eine hochgradig intensive, fast bedingungslose Verschmelzung. Du suchst nach einer Partnerschaft, in der die individuellen Grenzen verschwimmen und zwei Leben zu einer untrennbaren Einheit verschmelzen. Hier wird jede Emotion, jede Krise und jeder Triumph absolut geteilt, oft bis an die Grenze des Schmerzhaften. Diese Form der Intimität duldet keine halben Sachen und verlangt nach totaler Hingabe.",
+        4: "Deine Vorlieben spiegeln den Wunsch nach radikaler Autonomie und souveräner Unabhängigkeit wider. Du bewunderst Paare, die als eigenständige High-Performer durch das Leben gehen, ohne sich aneinander zu klammern. Die Beziehung ist hier kein goldener Käfig, sondern ein freiwilliges Bündnis zweier starker Persönlichkeiten. Man teilt den Weg, bewahrt sich aber stets den eigenen Freiraum und die uneingeschränkte Handlungsfähigkeit."
+    }
+    
+    # Textbausteine für K2 (Außengrenze / Schutzraum)
+    k2_texts = {
+        1: "Nach außen hin suchst du nach einer uneinnehmbaren Festung und hermetischer Abriegelung. Die Welt da draußen bleibt draußen, während ihr im inneren Zirkel eure ganz eigene Realität erschafft. Dieser Schutzraum ist absolut intakt und immun gegen gesellschaftliche Erwartungen oder Störungen von außen. Ihr genügen euch in dieser selbstgeschaffenen Pufferzone völlig selbst.",
+        2: "Deine Konstellation sucht die große gesellschaftliche Bühne und die wirkungsvolle Inszenierung. Eure Partnerschaft versteht sich auch als Statement nach außen, das gesehen, bewundert oder respektiert werden will. Der soziale Raum ist hier kein Störfaktor, sondern die Leinwand, auf der eure gemeinsame Performance stattfindet. Repräsentation, Stil und gesellschaftlicher Status verschmelzen zu einer eleganten Einheit.",
+        3: "Ihr sucht den radikalen, kompromisslosen Bruch mit allen bürgerlichen Konventionen. Eure Beziehungs-Architektur speist sich aus einer subversiven Energie, die bestehende Normen hinterfragt oder offen sprengt. Ihr lebt nach eigenen, oft unberechenbaren Regeln, die von der Norm abweichen und gerade dadurch ihre magische Anziehungskraft entfalten. Anpassung ist für euch der absolute Feind der Leidenschaft.",
+        4: "Die Außengrenzen deiner Traum-Beziehung sind maximal durchlässig und offen gestaltet. Ihr kapselt euch keineswegs ab, sondern seid fest und harmonisch in ein großes, unterstützendes soziales Netzwerk eingebunden. Freunde, Familie und Gemeinschaft fließen organisch in euren Alltag ein, ohne eure Bindung zu schwächen. Stärke zieht ihr hier aus der gemeinschaftlichen Verwurzelung."
+    }
+
+    # Synthese zu 6-7 fließenden Sätzen
+    s1 = f"Wenn man deine aktuellen Anker ({', '.join(names)}) betrachtet, offenbart sich ein faszinierendes psychologisches Muster."
+    s2 = f"Du orientierst dich an Beziehungsformen, die im tiefsten Inneren eine ganz bestimmte Sehnsucht bedienen."
+    s3 = k1_texts[round(k1)]
+    s4 = k2_texts[round(k2)]
+    s5 = "Das bedeutet für deinen persönlichen Beziehungsraum: Du suchst den perfekten Sweetspot aus innerer emotionaler Passung und äußerer Grenzziehung."
+    s6 = "Indem du dich von diesen Ikonen angezogen fühlst, kalibrierst du unbewusst deinen eigenen Kompass für das, was dir im Leben wirklich Halt gibt."
+    s7 = "Experimentiere ruhig weiter im Feld – du wirst sehen, wie sich dein Profil je nach Blickwinkel organisch verschiebt!"
+
+    return f"{s1} {s2} {s3} {s4} {s5} {s6} {s7}"
+
 # Schritt 1: Die intuitive Eingabe im oberen Bereich
 st.markdown("### 1. Welche Paare führen deiner Meinung nach eine gute Beziehung?")
 st.write("Wähle drei Paare aus, die dich inspirieren:")
@@ -84,6 +116,13 @@ with col3:
     sel3_key = st.selectbox("Drittes Paar", keys, index=24, format_func=lambda x: archetypes[x]["name"])
 
 initial_selection = [sel1_key, sel2_key, sel3_key]
+
+# Berechne den initialen Text direkt im Backend für den ersten Aufruf
+init_k1 = sum(archetypes[k]["K1"] for k in initial_selection) / 3
+init_k2 = sum(archetypes[k]["K2"] for k in initial_selection) / 3
+init_names = [archetypes[k]["name"] for k in initial_selection]
+initial_essay = generate_sociological_essay(init_k1, init_k2, init_names)
+
 archetypes_json = json.dumps(archetypes)
 initial_selection_json = json.dumps(initial_selection)
 
@@ -161,8 +200,8 @@ html_code = """
     </div>
     
     <div class="explanation-panel" id="explanation-text">
-        <strong>Weißt du, was deren Beziehung gemeinsam hat?</strong><br><br>
-        Lade Erklärung...
+        <strong>3. Weißt du, was deren Beziehung gemeinsam hat?</strong><br><br>
+        <div class="insight-block" id="essay-content">__INITIAL_ESSAY__</div>
     </div>
 
     <script>
@@ -196,7 +235,6 @@ html_code = """
             };
         });
 
-        // Der User-Punkt ("YOU")
         nodes.push({ 
             key: 'you', 
             name: 'Dein Schwerpunkt', 
@@ -242,6 +280,34 @@ html_code = """
                 .attr("cy", d => d.y);
         }
 
+        // JavaScript-Pendant zur dynamischen Essay-Generierung bei Feld-Klicks
+        function generateJSEssay(targetK1, targetK2, names) {
+            const k1_texts = {
+                1: "Auf der Ebene der Binnen-Dynamik zeigt deine Auswahl eine radikale Sehnsucht nach purer Symmetrie und Augenhöhe. Du lehnst verdeckte Machtkämpfe oder hierarchische Rollenmuster kategorisch ab. Stattdessen basiert das Fundament auf absolutem Respekt und gegenseitigem Einverständnis. Niemand führt hier Regie über den anderen, sondern beide Partner bilden ein gleichwertiges Team. Diese Konstellation sucht die intellektuelle und emotionale Ergänzung im reinen Gleichgewicht.",
+                2: "Deine gewählten Anker offenbaren ein klares Bewusstsein für Rollenverteilung und strukturiertes Gefälle. In deiner Wunsch-Architektur darf es durchaus eine Führung und eine Gefolgschaft geben, solange diese Rollen klar definiert und für beide Seiten stimmig sind. Dieses Modell setzt auf Stabilität durch klare Zuständigkeiten, bei denen Reibung gezielt zur Belebung der Dynamik genutzt wird. Es ist eine bewusste Entscheidung gegen die oft anstrengende Gleichmacherei.",
+                3: "Im Zentrum deiner Sehnsucht steht eine hochgradig intensive, fast bedingungslose Verschmelzung. Du suchst nach einer Partnerschaft, in der die individuellen Grenzen verschwimmen und zwei Leben zu einer untrennbaren Einheit verschmelzen. Hier wird jede Emotion, jede Krise und jeder Triumph absolut geteilt, oft bis an die Grenze des Schmerzhaften. Diese Form der Intimität duldet keine halben Sachen und verlangt nach totaler Hingabe.",
+                4: "Deine Vorlieben spiegeln den Wunsch nach radikaler Autonomie und souveräner Unabhängigkeit wider. Du bewunderst Paare, die als eigenständige High-Performer durch das Leben gehen, ohne sich aneinander zu klammern. Die Beziehung ist hier kein goldener Käfig, sondern ein freiwilliges Bündnis zweier starker Persönlichkeiten. Man teilt den Weg, bewahrt sich aber stets den eigenen Freiraum und die uneingeschränkte Handlungsfähigkeit."
+            };
+            
+            const k2_texts = {
+                1: "Nach außen hin suchst du nach einer uneinnehmbaren Festung und hermetischer Abriegelung. Die Welt da draußen bleibt draußen, während ihr im inneren Zirkel eure ganz eigene Realität erschafft. Dieser Schutzraum ist absolut intakt und immun gegen gesellschaftliche Erwartungen oder Störungen von außen. Ihr genügen euch in dieser selbstgeschaffenen Pufferzone völlig selbst.",
+                2: "Deine Konstellation sucht die große gesellschaftliche Bühne und die wirkungsvolle Inszenierung. Eure Partnerschaft versteht sich auch als Statement nach außen, das gesehen, bewundert oder respektiert werden will. Der soziale Raum ist hier kein Störfaktor, sondern die Leinwand, auf der eure gemeinsame Performance stattfindet. Repräsentation, Stil und gesellschaftlicher Status verschmelzen zu einer eleganten Einheit.",
+                3: "Ihr sucht den radikalen, kompromisslosen Bruch mit allen bürgerlichen Konventionen. Eure Beziehungs-Architektur speist sich aus einer subversiven Energie, die bestehende Normen hinterfragt oder offen sprengt. Ihr lebt nach eigenen, oft unberechenbaren Regeln, die von der Norm abweichen und gerade dadurch ihre magische Anziehungskraft entfalten. Anpassung ist für euch der absolute Feind der Leidenschaft.",
+                4: "Die Außengrenzen deiner Traum-Beziehung sind maximal durchlässig und offen gestaltet. Ihr kapselt euch keineswegs ab, sondern seid fest und harmonisch in ein großes, unterstützendes soziales Netzwerk eingebunden. Freunde, Familie und Gemeinschaft fließen organisch in euren Alltag ein, ohne eure Bindung zu schwächen. Stärke zieht ihr hier aus der gemeinschaftlichen Verwurzelung."
+            };
+
+            const rK1 = Math.max(1, Math.min(4, Math.round(targetK1)));
+            const rK2 = Math.max(1, Math.min(4, Math.round(targetK2)));
+            const nameStr = names.join(', ');
+
+            return "Wenn man deine aktuellen Anker (" + nameStr + ") betrachtet, offenbart sich ein faszinierendes psychologisches Muster. " +
+                   "Du orientierst dich an Beziehungsformen, die im tiefsten Inneren eine ganz bestimmte Sehnsucht bedienen. " +
+                   k1_texts[rK1] + " " + k2_texts[rK2] + " " +
+                   "Das bedeutet für deinen persönlichen Beziehungsraum: Du suchst den perfekten Sweetspot aus innerer emotionaler Passung und äußerer Grenzziehung. " +
+                   "Indem du dich von diesen Ikonen angezogen fühlst, kalibrierst du unbewusst deinen eigenen Kompass für das, was dir im Leben wirklich Halt gibt. " +
+                   "Experimentiere ruhig weiter im Feld – du wirst sehen, wie sich dein Profil je nach Blickwinkel organisch verschiebt!";
+        }
+
         function updateField() {
             let sumK1 = 0, sumK2 = 0;
             activeSelection.forEach(k => {
@@ -266,27 +332,10 @@ html_code = """
                 return activeSelection.includes(d.key) ? 10 : 6;
             });
 
-            // Grammatikalisch saubere soziologische Übersetzungen
-            const k1_text = targetK1 < 1.7 ? "eine tiefe, gleichberechtigte Partnerschaft auf Augenhöhe ohne versteckte Machtkämpfe" :
-                            targetK1 < 2.5 ? "eine klare Struktur mit einer definierten Rollenverteilung und gegenseitiger Führung" :
-                            targetK1 < 3.5 ? "eine intensive, fast bedingungslose Verschmelzung, bei der die Grenzen zwischen den Partnern verschwimmen" :
-                            "absolute Eigenständigkeit zweier starker Individuen, die sich völlig freiwillig ergänzen";
+            const activeNames = activeSelection.map(k => archetypes[k].name);
+            const essayHtml = generateJSEssay(targetK1, targetK2, activeNames);
 
-            const k2_text = targetK2 < 1.7 ? "einen hermetisch abgeschirmten Rückzugsort nur für euch beide, abgeschottet von der äußeren Welt" :
-                            targetK2 < 2.5 ? "eine bewusste Inszenierung nach außen – eure Beziehung erfüllt auch eine wichtige repräsentative Funktion" :
-                            targetK2 < 3.5 ? "einen bewussten Bruch mit gesellschaftlichen Konventionen; ihr lebt nach euren eigenen Regeln" :
-                            "völlige Offenheit und die nahtlose Einbindung in ein gemeinsames, soziales Netzwerk";
-
-            const namesList = activeSelection.map(k => '<span class="highlight-name">' + archetypes[k].name + '</span>').join(', ');
-
-            document.getElementById('explanation-text').innerHTML = 
-                "<strong>3. Weißt du, was deren Beziehung gemeinsam hat?</strong><br>" +
-                "<span style='color: #5f6368; font-size: 13px;'>Deine aktuellen Anker: " + namesList + "</span><br><br>" +
-                "Im Kern sehnst du dich nach:<br>" +
-                "<div class='insight-block'>" +
-                "• <strong>Binnen-Dynamik:</strong> " + k1_text + ".<br>" +
-                "• <strong>Außengrenze:</strong> " + k2_text + "." +
-                "</div>";
+            document.getElementById('essay-content').innerHTML = essayHtml;
 
             simulation.alpha(0.5).restart();
         }
@@ -299,5 +348,6 @@ html_code = """
 
 html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
 html_code = html_code.replace("__INITIAL_SELECTION__", initial_selection_json)
+html_code = html_code.replace("__INITIAL_ESSAY__", initial_essay)
 
-components.html(html_code, height=580)
+components.html(html_code, height=650)
