@@ -10,8 +10,8 @@ st.set_page_config(
 )
 
 st.title("Proximity Resonance Map")
-st.markdown("### Das soziologische Kraftfeld")
-st.write("Bestimme unten deine 3 Ausgangs-Eichpunkte, um dein initiales Profil zu setzen. Klicke danach beliebig auf Prominente im Feld, um deine Position dynamisch zu verschieben und die Sogwirkung zu erleben.")
+st.markdown("### Das soziologische Kraftfeld & Auto-Kalibrierung")
+st.write("Wähle unten deine 3 initialen Eichpunkte. Das System verortet deinen Schwerpunkt im Feld. Klicke im Anschluss auf beliebige andere Paare, die dir im Raum näher stehen – sie kalibrieren dein Profil sofort automatisch nach!")
 
 # Das vollständige 50er-Hybrid-Dataset im Backend
 archetypes = {
@@ -70,22 +70,23 @@ archetypes = {
     "Kunis_Kutcher": {"K1": 4, "K2": 4, "name": "Mila Kunis & Ashton Kutcher"}
 }
 
-# UI Dropdowns zur initialen Verortung (die 3 Eichpunkte des Users)
+# UI Dropdowns zur initialen Verortung (oben als Kalibrierung)
+st.markdown("### 🎛️ Initiale Eichpunkte (Kalibrierung)")
 col1, col2, col3 = st.columns(3)
 keys = list(archetypes.keys())
 
 with col1:
-    sel1_key = st.selectbox("Eichpunkt 1", keys, index=0, format_func=lambda x: archetypes[x]["name"])
+    sel1_key = st.selectbox("Paar 1", keys, index=0, format_func=lambda x: archetypes[x]["name"])
 with col2:
-    sel2_key = st.selectbox("Eichpunkt 2", keys, index=4, format_func=lambda x: archetypes[x]["name"])
+    sel2_key = st.selectbox("Paar 2", keys, index=4, format_func=lambda x: archetypes[x]["name"])
 with col3:
-    sel3_key = st.selectbox("Eichpunkt 3", keys, index=24, format_func=lambda x: archetypes[x]["name"])
+    sel3_key = st.selectbox("Paar 3", keys, index=24, format_func=lambda x: archetypes[x]["name"])
 
 initial_selection = [sel1_key, sel2_key, sel3_key]
 archetypes_json = json.dumps(archetypes)
 initial_selection_json = json.dumps(initial_selection)
 
-# HTML/JS Kraftfeld-Visualisierung
+# HTML/JS Kraftfeld-Visualisierung mit Auto-Kalibrierung
 html_code = """
 <!DOCTYPE html>
 <html lang="de">
@@ -136,6 +137,15 @@ html_code = """
             width: 560px;
             text-align: center;
         }
+        .active-tag {
+            display: inline-block;
+            background: #e8f0fe;
+            color: #1a73e8;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin: 0 3px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -145,7 +155,7 @@ html_code = """
     </div>
     
     <div class="profile-panel" id="profile-text">
-        <strong>Dein aktuelles Begehrensprofil:</strong> Berechne...
+        <strong>Aktive Kalibrierung:</strong> Lade...
     </div>
 
     <script>
@@ -165,7 +175,6 @@ html_code = """
         const keys = Object.keys(archetypes);
         let nodes = keys.map((key) => {
             const item = archetypes[key];
-            // Position im Raum anhand der K1/K2 Koordinaten aufspannen (kein fester Kern/Rand mehr)
             const posX = 80 + (item.K2 - 1) * 140 + (Math.random() * 30 - 15);
             const posY = 80 + (item.K1 - 1) * 90 + (Math.random() * 30 - 15);
             return {
@@ -176,20 +185,18 @@ html_code = """
                 x: posX,
                 y: posY,
                 r: 6,
-                color: '#1a73e8',
-                match: 50
+                color: '#1a73e8'
             };
         });
 
-        // Der User-Punkt ("YOU") bewegt sich frei im Feld
+        // Der User-Punkt ("YOU")
         nodes.push({ 
             key: 'you', 
             name: 'YOU (Dein Profil)', 
-            r: 14, 
+            r: 15, 
             color: '#d93025', 
             x: width / 2, 
-            y: height / 2, 
-            match: 100 
+            y: height / 2 
         });
 
         const simulation = d3.forceSimulation(nodes)
@@ -205,7 +212,7 @@ html_code = """
             .style("cursor", "pointer")
             .on("mouseover", function(event, d) {
                 tooltip.style("opacity", 1)
-                       .html("<strong>" + d.name + "</strong><br>" + (d.key === 'you' ? "Dein aktueller Standpunkt" : "Klick, um Position anzusteuern"))
+                       .html("<strong>" + d.name + "</strong><br>" + (d.key === 'you' ? "Dein aktueller Schwerpunkt" : "Klick, um als näheren Anker zu übernehmen"))
                        .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
                        .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
             })
@@ -215,7 +222,7 @@ html_code = """
             .on("click", function(event, d) {
                 if (d.key === 'you') return;
                 
-                // Wenn der User auf einen Promi am Rand klickt, fügen wir ihn zur aktiven Auswahl hinzu (max 3, FIFO)
+                // Auto-Kalibrierung: Wenn ein Paar im Feld angeklickt wird, rotiert es in die aktive 3er-Auswahl (FIFO)
                 if (!activeSelection.includes(d.key)) {
                     activeSelection.shift();
                     activeSelection.push(d.key);
@@ -230,7 +237,7 @@ html_code = """
         }
 
         function updateField() {
-            // Berechne den neuen Schwerpunkt des Users basierend auf den 3 aktiven Punkten
+            // Schwerpunkt aus den 3 aktiven Punkten berechnen
             let sumK1 = 0, sumK2 = 0;
             activeSelection.forEach(k => {
                 sumK1 += archetypes[k].K1;
@@ -239,36 +246,35 @@ html_code = """
             const targetK1 = sumK1 / activeSelection.length;
             const targetK2 = sumK2 / activeSelection.length;
 
-            // Zielkoordinaten für den "YOU"-Punkt im visuellen Feld
             const targetX = 80 + (targetK2 - 1) * 140;
             const targetY = 80 + (targetK1 - 1) * 90;
 
-            // Verschiebe den YOU-Punkt sanft zum neuen Schwerpunkt
             const youNode = nodes.find(n => n.key === 'you');
             youNode.x = targetX;
             youNode.y = targetY;
 
-            // Farben aktualisieren (Aktive Auswahl gelb markieren)
+            // Markierungen im Feld aktualisieren (Aktive Anker gelb)
             nodeElements.attr("fill", d => {
                 if (d.key === 'you') return '#d93025';
                 return activeSelection.includes(d.key) ? '#f9ab00' : '#1a73e8';
             }).attr("r", d => {
-                if (d.key === 'you') return 14;
-                return activeSelection.includes(d.key) ? 9 : 6;
+                if (d.key === 'you') return 15;
+                return activeSelection.includes(d.key) ? 10 : 6;
             });
 
-            // Text-Diagnose aktualisieren
+            // Text-Diagnose und aktive Tags aktualisieren
             const k1_desc = targetK1 < 1.7 ? "Egalitär" : targetK1 < 2.5 ? "Asymmetrisch" : targetK1 < 3.5 ? "Symbiotisch" : "Autonom";
             const k2_desc = targetK2 < 1.7 ? "Hermetisch" : targetK2 < 2.5 ? "Repräsentativ" : targetK2 < 3.5 ? "Subversiv" : "Offen";
             
+            const tagsHtml = activeSelection.map(k => '<span class="active-tag">' + archetypes[k].name + '</span>').join('');
+
             document.getElementById('profile-text').innerHTML = 
-                "<strong>Aktive Anker:</strong> " + activeSelection.map(k => archetypes[k].name).join(" + ") + "<br>" +
-                "<strong>Dein verschobenes Profil:</strong> Binnen-Dynamik: <em>" + k1_desc + "</em> | Außengrenze: <em>" + k2_desc + "</em>";
+                "<strong>Aktive Kalibrierung (Anker):</strong> " + tagsHtml + "<br>" +
+                "<strong>Dein soziologisches Profil:</strong> Binnen-Dynamik: <em>" + k1_desc + "</em> | Außengrenze: <em>" + k2_desc + "</em>";
 
             simulation.alpha(0.5).restart();
         }
 
-        // Initiales Feld berechnen
         updateField();
     </script>
 </body>
