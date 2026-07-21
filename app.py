@@ -91,7 +91,7 @@ target_k2 = (sel1["K2"] + sel2["K2"] + sel3["K2"]) / 3
 
 archetypes_json = json.dumps(archetypes)
 
-# HTML-Code mit korrekt geschützten (verdoppelten) geschweiften Klammern für den F-String
+# HTML-Code mit String-Verknüpfung im JS-Teil (ohne f-string-Kollision)
 html_code = f"""
 <!DOCTYPE html>
 <html lang="de">
@@ -201,7 +201,7 @@ html_code = f"""
             fx: width / 2, 
             fy: height / 2, 
             match: 100 
-        }});
+        });
 
         const getDistance = (match) => 15 + ((100 - match) / 100) * 170;
 
@@ -221,7 +221,7 @@ html_code = f"""
                 if (d.key !== 'you') {{
                     d3.select(this).attr("r", 8).attr("fill", "#1557b0");
                     tooltip.style("opacity", 1)
-                           .html(`<strong>${{d.name}}</strong><br>Strukturelle Nähe: ${{d.match.toFixed(1)}}%`)
+                           .html("<strong>" + d.name + "</strong><br>Strukturelle Nähe: " + d.match.toFixed(1) + "%")
                            .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
                            .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
                 }
@@ -259,7 +259,7 @@ html_code = f"""
                 const match = Math.max(5, Math.min(98, 100 - (totalDiff / 4.24) * 90));
                 n.match = match;
                 totalMatch += match;
-            }
+            }}
         }});
 
         const avgMatch = totalMatch / (nodes.length - 1);
