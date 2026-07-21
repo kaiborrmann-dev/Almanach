@@ -11,7 +11,7 @@ st.set_page_config(
 
 st.title("Proximity Resonance Map")
 st.markdown("### Der soziologische Spiegel deines Begehrens")
-st.write("Wähle drei prägende Beziehungs-Archetypen aus. Die Map spiegelt deine Position im Raum und entschlüsselt deinen unbewussten Beziehungs-Typ.")
+st.write("Klicke direkt in der Karte nacheinander auf **3 Prominente oder fiktive Ikonen**, um deine Wunsch-Konstellation zu bilden und den Raum neu zu zentrieren.")
 
 # Das vollständige 50er-Hybrid-Dataset im Backend
 archetypes = {
@@ -70,58 +70,9 @@ archetypes = {
     "Kunis_Kutcher": {"K1": 4, "K2": 4, "name": "Mila Kunis & Ashton Kutcher"}
 }
 
-# UI Dropdowns in Streamlit
-col1, col2, col3 = st.columns(3)
-keys = list(archetypes.keys())
-
-with col1:
-    sel1_key = st.selectbox("Eichpunkt 1", keys, index=0, format_func=lambda x: archetypes[x]["name"])
-with col2:
-    sel2_key = st.selectbox("Eichpunkt 2", keys, index=5, format_func=lambda x: archetypes[x]["name"])
-with col3:
-    sel3_key = st.selectbox("Eichpunkt 3", keys, index=10, format_func=lambda x: archetypes[x]["name"])
-
-# Werte für Javascript vorbereiten
-sel1 = archetypes[sel1_key]
-sel2 = archetypes[sel2_key]
-sel3 = archetypes[sel3_key]
-
-target_k1 = (sel1["K1"] + sel2["K1"] + sel3["K1"]) / 3
-target_k2 = (sel1["K2"] + sel2["K2"] + sel3["K2"]) / 3
-
 archetypes_json = json.dumps(archetypes)
 
-# --- SOZIOLOGISCHE AUTOMATISCHE TYPISIERUNG ---
-k1_names = {
-    1: "Egalitär (Symmetrische Augenhöhe)",
-    2: "Asymmetrisch (Strukturiertes Machtgefälle / Führung)",
-    3: "Symbiotisch (Totale Verschmelzung & Ineinandergreifen)",
-    4: "Autonom (Parallele High-Performer / Maximale Unabhängigkeit)"
-}
-
-k2_names = {
-    1: "Hermetisch (Die uneinnehmbare Festung nach außen)",
-    2: "Repräsentativ (Die gesellschaftliche Bühne & Performance)",
-    3: "Subversiv (Der radikale Bruch mit bürgerlichen Normen)",
-    4: "Offen (Vollständige Durchlässigkeit & Einbezug des Netzwerks)"
-}
-
-# Nächstgelegene Integer-Werte ermitteln für die Text-Ausgabe
-approx_k1 = round(target_k1)
-approx_k2 = round(target_k2)
-approx_k1 = max(1, min(4, approx_k1))
-approx_k2 = max(1, min(4, approx_k2))
-
-st.markdown("---")
-st.subheader("🔍 Dein soziologisches Profil:")
-col_a, col_b = st.columns(2)
-with col_a:
-    st.info(f"**Binnen-Dynamik (K1):**\n\n {k1_names[approx_k1]}")
-with col_b:
-    st.success(f"**Außengrenze / Schutzraum (K2):**\n\n {k2_names[approx_k2]}")
-st.markdown("---")
-
-# HTML-Code für die Visualisierung
+# HTML-Code mit direktem interaktiven Klicken auf die D3-Knoten
 html_code = """
 <!DOCTYPE html>
 <html lang="de">
@@ -133,7 +84,7 @@ html_code = """
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: transparent;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             margin: 0;
             color: #3c4043;
@@ -162,31 +113,40 @@ html_code = """
             z-index: 10;
             white-space: nowrap;
         }
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 60px;
+        .selection-panel {
             margin-top: 15px;
-            font-size: 14px;
+            font-size: 13px;
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #dadce0;
+            width: 560px;
+            text-align: center;
+        }
+        .selected-tag {
+            display: inline-block;
+            background: #e8f0fe;
+            color: #1a73e8;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin: 0 4px;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
 
-    <div>
-        <div id="map-container">
-            <div id="tooltip" class="tooltip"></div>
-        </div>
-        <div class="stats">
-            <div><strong>Feld-Dichte:</strong> <span id="density-val">High</span></div>
-            <div><strong>Topologische Ausrichtung:</strong> <span id="match-val">0.00%</span></div>
-        </div>
+    <div id="map-container">
+        <div id="tooltip" class="tooltip"></div>
+    </div>
+    
+    <div class="selection-panel">
+        <strong>Gewählte Eichpunkte (max. 3):</strong> <span id="selection-text">Noch keine gewählt (Klicke auf Punkte)</span>
     </div>
 
     <script>
         const archetypes = __ARCHETYPES_JSON__;
-        const targetK1 = __TARGET_K1__;
-        const targetK2 = __TARGET_K2__;
+        let selectedKeys = [];
 
         const width = 600;
         const height = 400;
@@ -217,7 +177,7 @@ html_code = """
                 name: item.name,
                 K1: item.K1,
                 K2: item.K2,
-                r: 5,
+                r: 6,
                 color: '#1a73e8',
                 match: 50
             };
@@ -249,18 +209,28 @@ html_code = """
             .style("cursor", d => d.key === 'you' ? "default" : "pointer")
             .on("mouseover", function(event, d) {
                 if (d.key !== 'you') {
-                    d3.select(this).attr("r", 8).attr("fill", "#1557b0");
                     tooltip.style("opacity", 1)
-                           .html("<strong>" + d.name + "</strong><br>Strukturelle Nähe: " + d.match.toFixed(1) + "%")
+                           .html("<strong>" + d.name + "</strong><br>Klick zum Auswählen (Eichpunkt)")
                            .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
                            .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
                 }
             })
-            .on("mouseout", function(event, d) {
-                if (d.key !== 'you') {
-                    d3.select(this).attr("r", d.r).attr("fill", d.color);
-                    tooltip.style("opacity", 0);
+            .on("mouseout", function() {
+                tooltip.style("opacity", 0);
+            })
+            .on("click", function(event, d) {
+                if (d.key === 'you') return;
+                
+                const index = selectedKeys.indexOf(d.key);
+                if (index > -1) {
+                    selectedKeys.splice(index, 1); // Abwählen, wenn schon gewählt
+                } else {
+                    if (selectedKeys.length >= 3) {
+                        selectedKeys.shift(); // Ältesten entfernen, wenn schon 3 gewählt
+                    }
+                    selectedKeys.push(d.key);
                 }
+                updateMap();
             });
 
         svg.append("text")
@@ -280,32 +250,53 @@ html_code = """
                 .attr("cy", d => d.key === 'you' ? height / 2 : d.y);
         }
 
-        let totalMatch = 0;
-        nodes.forEach(n => {
-            if (n.key !== 'you') {
-                const diffK1 = Math.abs(n.K1 - targetK1);
-                const diffK2 = Math.abs(n.K2 - targetK2);
-                const totalDiff = Math.sqrt(diffK1 * diffK1 + diffK2 * diffK2);
-                const match = Math.max(5, Math.min(98, 100 - (totalDiff / 4.24) * 90));
-                n.match = match;
-                totalMatch += match;
+        function updateMap() {
+            // UI aktualisieren
+            const tagContainer = document.getElementById('selection-text');
+            if (selectedKeys.length === 0) {
+                tagContainer.innerHTML = "Noch keine gewählt (Klicke auf Punkte)";
+            } else {
+                tagContainer.innerHTML = selectedKeys.map(k => '<span class="selected-tag">' + archetypes[k].name + '</span>').join('');
             }
-        });
 
-        const avgMatch = totalMatch / (nodes.length - 1);
-        document.getElementById('match-val').innerText = avgMatch.toFixed(2) + '%';
-        document.getElementById('density-val').innerText = avgMatch > 55 ? 'High' : 'Moderate';
+            // Farben der Knoten anpassen (Ausgewählte werden hervorgehoben)
+            nodeElements.attr("fill", d => {
+                if (d.key === 'you') return '#d93025';
+                return selectedKeys.includes(d.key) ? '#f9ab00' : '#1a73e8';
+            }).attr("r", d => selectedKeys.includes(d.key) ? 9 : 6);
 
-        simulation.force("radial", d3.forceRadial(d => getDistance(d.match), width / 2, height / 2).strength(0.3));
-        simulation.alpha(1).restart();
+            if (selectedKeys.length === 0) return;
+
+            // Ziel-Vektoren aus den ausgewählten Punkten berechnen
+            let targetK1 = 0, targetK2 = 0;
+            selectedKeys.forEach(k => {
+                targetK1 += archetypes[k].K1;
+                targetK2 += archetypes[k].K2;
+            });
+            targetK1 /= selectedKeys.length;
+            targetK2 /= selectedKeys.length;
+
+            // Physik-Simulation updaten
+            nodes.forEach(n => {
+                if (n.key !== 'you') {
+                    const diffK1 = Math.abs(n.K1 - targetK1);
+                    const diffK2 = Math.abs(n.K2 - targetK2);
+                    const totalDiff = Math.sqrt(diffK1 * diffK1 + diffK2 * diffK2);
+                    n.match = Math.max(5, Math.min(98, 100 - (totalDiff / 4.24) * 90));
+                }
+            });
+
+            simulation.force("radial", d3.forceRadial(d => getDistance(d.match), width / 2, height / 2).strength(0.3));
+            simulation.alpha(1).restart();
+        }
+
+        // Standardmäßig die ersten 3 für den Start aktivieren
+        selectedKeys = ['Clooney', 'Obama', 'Addams'];
+        updateMap();
     </script>
 </body>
 </html>
 """
 
-# Sichere Übergabe der Python-Werte via einfache String-Ersetzung
 html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
-html_code = html_code.replace("__TARGET_K1__", str(target_k1))
-html_code = html_code.replace("__TARGET_K2__", str(target_k2))
-
-components.html(html_code, height=480)
+components.html(html_code, height=520)
