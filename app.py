@@ -11,7 +11,7 @@ st.set_page_config(
 
 st.title("Proximity Resonance Map")
 st.markdown("### Der soziologische Spiegel deines Begehrens")
-st.write("Wähle drei prägende Beziehungs-Archetypen aus. Die Map berechnet sofort, welche Prominenten und fiktiven Ikonen dir strukturell am nächsten stehen.")
+st.write("Wähle drei prägende Beziehungs-Archetypen aus. Die Map spiegelt deine Position im Raum und entschlüsselt deinen unbewussten Beziehungs-Typ.")
 
 # Das vollständige 50er-Hybrid-Dataset im Backend
 archetypes = {
@@ -91,7 +91,37 @@ target_k2 = (sel1["K2"] + sel2["K2"] + sel3["K2"]) / 3
 
 archetypes_json = json.dumps(archetypes)
 
-# HTML-Code als normaler String (kein f-string mehr), um jeden SyntaxError auszuschließen
+# --- SOZIOLOGISCHE AUTOMATISCHE TYPISIERUNG ---
+k1_names = {
+    1: "Egalitär (Symmetrische Augenhöhe)",
+    2: "Asymmetrisch (Strukturiertes Machtgefälle / Führung)",
+    3: "Symbiotisch (Totale Verschmelzung & Ineinandergreifen)",
+    4: "Autonom (Parallele High-Performer / Maximale Unabhängigkeit)"
+}
+
+k2_names = {
+    1: "Hermetisch (Die uneinnehmbare Festung nach außen)",
+    2: "Repräsentativ (Die gesellschaftliche Bühne & Performance)",
+    3: "Subversiv (Der radikale Bruch mit bürgerlichen Normen)",
+    4: "Offen (Vollständige Durchlässigkeit & Einbezug des Netzwerks)"
+}
+
+# Nächstgelegene Integer-Werte ermitteln für die Text-Ausgabe
+approx_k1 = round(target_k1)
+approx_k2 = round(target_k2)
+approx_k1 = max(1, min(4, approx_k1))
+approx_k2 = max(1, min(4, approx_k2))
+
+st.markdown("---")
+st.subheader("🔍 Dein soziologisches Profil:")
+col_a, col_b = st.columns(2)
+with col_a:
+    st.info(f"**Binnen-Dynamik (K1):**\n\n {k1_names[approx_k1]}")
+with col_b:
+    st.success(f"**Außengrenze / Schutzraum (K2):**\n\n {k2_names[approx_k2]}")
+st.markdown("---")
+
+# HTML-Code für die Visualisierung
 html_code = """
 <!DOCTYPE html>
 <html lang="de">
@@ -154,7 +184,6 @@ html_code = """
     </div>
 
     <script>
-        // Python injektiert hier direkt die Variablen via f-string Ersatz außerhalb des großen Blocks
         const archetypes = __ARCHETYPES_JSON__;
         const targetK1 = __TARGET_K1__;
         const targetK2 = __TARGET_K2__;
@@ -274,7 +303,7 @@ html_code = """
 </html>
 """
 
-# Sichere Übergabe der Python-Werte via einfache String-Ersetzung (100% f-string fehlerfrei)
+# Sichere Übergabe der Python-Werte via einfache String-Ersetzung
 html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
 html_code = html_code.replace("__TARGET_K1__", str(target_k1))
 html_code = html_code.replace("__TARGET_K2__", str(target_k2))
