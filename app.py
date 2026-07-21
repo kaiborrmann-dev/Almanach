@@ -85,25 +85,24 @@ with col3:
 
 initial_selection = [sel1_key, sel2_key, sel3_key]
 
-# Backend-Berechnung des initialen Struktur-Profils
+# Backend-Berechnung mit klaren, trennscharfen Texten ohne Jargon
 init_k1 = sum(archetypes[k]["K1"] for k in initial_selection) / 3
 init_k2 = sum(archetypes[k]["K2"] for k in initial_selection) / 3
 init_names = [archetypes[k]["name"] for k in initial_selection]
 
-def generate_structural_analysis(k1, k2, names):
-    # Präzise, soziologische Typen-Zuordnung ohne Geschwafel
-    k1_types = {
-        1: "Egalitäre Binnenstruktur (Symmetrie, Augenhöhe, Verzicht auf formale Hierarchien)",
-        2: "Asymmetrische Binnenstruktur (Klares Macht- und Führungsgefälle, definierte Rollenverteilung)",
-        3: "Symbiotische Binnenstruktur (Verschmelzung, Auflösung individueller Grenzen, absolute Intimität)",
-        4: "Autonome Binnenstruktur (Parallele Unabhängigkeit zweier starker Akteure ohne Klammern)"
+def generate_clear_analysis(k1, k2, names):
+    k1_descriptions = {
+        1: "Ihr wollt eine Partnerschaft auf Augenhöhe. Keine versteckten Machtkämpfe, kein Chef im Ring – sondern zwei gleichberechtigte Partner, die Entscheidungen gemeinsam und fair treffen.",
+        2: "Ihr braucht eine klare Linie und Aufgabenteilung. Es ist für euch völlig in Ordnung, wenn einer von beiden den Hut aufhat oder führt, solange die Rollen klar verteilt und verlässlich sind.",
+        3: "Ihr sucht die absolute, unzertrennliche Verschmelzung. Eure Leben greifen so tief ineinander, dass ihr fast eins werdet – mit einer emotionalen Intensität, die keine halben Sachen duldet.",
+        4: "Ihr setzt auf Freiheit und starke Eigenständigkeit. Zwei eigenständige Persönlichkeiten, die sich bewusst zusammenschließen, aber niemals ihre Unabhängigkeit oder ihren Freiraum aufgeben."
     }
     
-    k2_types = {
-        1: "Hermetische Außengrenze (Die uneinnehmbare Festung, absolute Abschottung nach außen)",
-        2: "Repräsentative Außengrenze (Die gesellschaftliche Bühne, Inszenierung und Statuspflege)",
-        3: "Subversive Außengrenze (Bruch mit bürgerlichen Konventionen, normbrechende Eigendynamik)",
-        4: "Offene Außengrenze (Vollständige Durchlässigkeit und Einbindung ins soziale Netzwerk)"
+    k2_descriptions = {
+        1: "Ihr wollt eure Ruhe und einen hermetischen Schutzraum. Was draußen in der Welt passiert, bleibt draußen – ihr baut euch eure eigene, abgeschottete Welt auf.",
+        2: "Ihr liebt den großen Auftritt und eine Partnerschaft mit Außenwirkung. Eure Beziehung darf man wahrnehmen, sie hat Stil, Eleganz und eine bewusste gesellschaftliche Präsenz.",
+        3: "Ihr pfeift auf bürgerliche Konventionen. Eure Beziehung folgt euren ganz eigenen, unberechenbaren Regeln, und es stört euch überhaupt nicht, wenn das nicht der Norm entspricht.",
+        4: "Ihr seid mitten im Leben und eng mit Freunden und Familie vernetzt. Eure Beziehung kapselt sich nicht ab, sondern ist harmonisch und offen in ein großes soziales Umfeld eingebunden."
     }
 
     rK1 = max(1, min(4, round(k1)))
@@ -111,23 +110,21 @@ def generate_structural_analysis(k1, k2, names):
     name_str = ", ".join(names)
 
     return f"""
-    <strong>Analytischer Befund der Anker ({name_str}):</strong><br><br>
-    <strong>1. Binnen-Dimension (K1):</strong> {k1_types[rK1]}<br>
-    <strong>2. Außen-Dimension (K2):</strong> {k2_types[rK2]}<br><br>
-    <em>Strukturelles Fazit:</em> Deine Auswahl definiert einen exakten Schnittpunkt im Koordinatensystem. 
-    Die Paare teilen eine gemeinsame Topologie, bei der interne Beziehungsmechanik und externe Grenzziehung zwingend ineinandergreifen. 
-    Klickst du im Feld auf abweichende Paare, verschiebt sich dieser mathematische Schwerpunkt sofort.
+    <strong>Was diese Paare ({name_str}) verbindet:</strong><br><br>
+    🔹 <strong>Wie ihr miteinander lebt:</strong> {k1_descriptions[rK1]}<br><br>
+    🔹 <strong>Wie ihr zur Außenwelt steht:</strong> {k2_descriptions[rK2]}<br><br>
+    <em>Fazit:</em> Genau diese Mischung suchst du im Kern. Wenn du in der Karte auf andere Paare klickst, siehst du sofort, wie sich dieser Schwerpunkt verschiebt.
     """
 
-initial_essay = generate_structural_analysis(init_k1, init_k2, init_names)
+initial_essay = generate_clear_analysis(init_k1, init_k2, init_names)
 archetypes_json = json.dumps(archetypes)
 initial_selection_json = json.dumps(initial_selection)
 
 st.markdown("---")
 st.markdown("### 2. Siehst du, welche dir im Feld am nächsten sind?")
-st.write("Die markierten Punkte in der Karte spiegeln deinen Schwerpunkt wider. Klicke im Feld auf andere Paare, wenn du merkst, dass sie dir eigentlich noch näher stehen – sie kalibrieren dein Profil sofort nach.")
+st.write("Die markierten Punkte in der Karte spiegeln deinen aktuellen Schwerpunkt wider. Klicke im Feld auf andere Paare, wenn du merkst, dass sie dir eigentlich noch näher stehen – sie kalibrieren dein Profil sofort nach.")
 
-# HTML/JS Kraftfeld-Visualisierung
+# HTML/JS Kraftfeld-Visualisierung (mit großzügigem iFrame-Layout gegen Abschneiden)
 html_code = """
 <!DOCTYPE html>
 <html lang="de">
@@ -169,21 +166,21 @@ html_code = """
             white-space: nowrap;
         }
         .explanation-panel {
-            margin-top: 15px;
-            margin-bottom: 30px;
+            margin-top: 20px;
+            margin-bottom: 40px;
             font-size: 14px;
             background: #f8f9fa;
             padding: 24px;
             border-radius: 12px;
             border: 1px solid #dadce0;
             width: 560px;
-            line-height: 1.6;
+            line-height: 1.7;
         }
         .insight-title {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             color: #202124;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             display: block;
         }
         .insight-content {
@@ -198,7 +195,7 @@ html_code = """
     </div>
     
     <div class="explanation-panel" id="explanation-panel">
-        <span class="insight-title">3. Struktureller Kern der Beziehung</span>
+        <span class="insight-title">3. Weißt du, was deren Beziehung gemeinsam hat?</span>
         <div class="insight-content" id="essay-content">__INITIAL_ESSAY__</div>
     </div>
 
@@ -279,30 +276,28 @@ html_code = """
         }
 
         function generateJSAnalysis(targetK1, targetK2, names) {
-            const k1_types = {
-                1: "Egalitäre Binnenstruktur (Symmetrie, Augenhöhe, Verzicht auf formale Hierarchien)",
-                2: "Asymmetrische Binnenstruktur (Klares Macht- und Führungsgefälle, definierte Rollenverteilung)",
-                3: "Symbiotische Binnenstruktur (Verschmelzung, Auflösung individueller Grenzen, absolute Intimität)",
-                4: "Autonome Binnenstruktur (Parallele Unabhängigkeit zweier starker Akteure ohne Klammern)"
+            const k1_desc = {
+                1: "Ihr wollt eine Partnerschaft auf Augenhöhe. Keine versteckten Machtkämpfe, kein Chef im Ring – sondern zwei gleichberechtigte Partner, die Entscheidungen gemeinsam und fair treffen.",
+                2: "Ihr braucht eine klare Linie und Aufgabenteilung. Es ist für euch völlig in Ordnung, wenn einer von beiden den Hut aufhat oder führt, solange die Rollen klar verteilt und verlässlich sind.",
+                3: "Ihr sucht die absolute, unzertrennliche Verschmelzung. Eure Leben greifen so tief ineinander, dass ihr fast eins werdet – mit einer emotionalen Intensität, die keine halben Sachen duldet.",
+                4: "Ihr setzt auf Freiheit und starke Eigenständigkeit. Zwei eigenständige Persönlichkeiten, die sich bewusst zusammenschließen, aber niemals ihre Unabhängigkeit oder ihren Freiraum aufgeben."
             };
             
-            const k2_types = {
-                1: "Hermetische Außengrenze (Die uneinnehmbare Festung, absolute Abschottung nach außen)",
-                2: "Repräsentative Außengrenze (Die gesellschaftliche Bühne, Inszenierung und Statuspflege)",
-                3: "Subversive Außengrenze (Bruch mit bürgerlichen Konventionen, normbrechende Eigendynamik)",
-                4: "Offene Außengrenze (Vollständige Durchlässigkeit und Einbindung ins soziale Netzwerk)"
+            const k2_desc = {
+                1: "Ihr wollt eure Ruhe und einen hermetischen Schutzraum. Was draußen in der Welt passiert, bleibt draußen – ihr baut euch eure eigene, abgeschottete Welt auf.",
+                2: "Ihr liebt den großen Auftritt und eine Partnerschaft mit Außenwirkung. Eure Beziehung darf man wahrnehmen, sie hat Stil, Eleganz und eine bewusste gesellschaftliche Präsenz.",
+                3: "Ihr pfeift auf bürgerliche Konventionen. Eure Beziehung folgt euren ganz eigenen, unberechenbaren Regeln, und es stört euch überhaupt nicht, wenn das nicht der Norm entspricht.",
+                4: "Ihr seid mitten im Leben und eng mit Freunden und Familie vernetzt. Eure Beziehung kapselt sich nicht ab, sondern ist harmonisch und offen in ein großes soziales Umfeld eingebunden."
             };
 
             const rK1 = Math.max(1, Math.min(4, Math.round(targetK1)));
             const rK2 = Math.max(1, Math.min(4, Math.round(targetK2)));
             const nameStr = names.join(', ');
 
-            return "<strong>Analytischer Befund der Anker (" + nameStr + "):</strong><br><br>" +
-                   "<strong>1. Binnen-Dimension (K1):</strong> " + k1_types[rK1] + "<br>" +
-                   "<strong>2. Außen-Dimension (K2):</strong> " + k2_types[rK2] + "<br><br>" +
-                   "<em>Strukturelles Fazit:</em> Deine Auswahl definiert einen exakten Schnittpunkt im Koordinatensystem. " +
-                   "Die Paare teilen eine gemeinsame Topologie, bei der interne Beziehungsmechanik und externe Grenzziehung zwingend ineinandergreifen. " +
-                   "Klickst du im Feld auf abweichende Paare, verschiebt sich dieser mathematische Schwerpunkt sofort.";
+            return "<strong>Was diese Paare (" + nameStr + ") verbindet:</strong><br><br>" +
+                   "🔹 <strong>Wie ihr miteinander lebt:</strong> " + k1_desc[rK1] + "<br><br>" +
+                   "🔹 <strong>Wie ihr zur Außenwelt steht:</strong> " + k2_desc[rK2] + "<br><br>" +
+                   "<em>Fazit:</em> Genau diese Mischung suchst du im Kern. Wenn du in der Karte auf andere Paare klickst, siehst du sofort, wie sich dieser Schwerpunkt verschiebt.";
         }
 
         function updateField() {
@@ -347,4 +342,5 @@ html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
 html_code = html_code.replace("__INITIAL_SELECTION__", initial_selection_json)
 html_code = html_code.replace("__INITIAL_ESSAY__", initial_essay)
 
-components.html(html_code, height=750)
+# iFrame-Höhe auf sichere 950px erhöht, damit garantiert nichts abgeschnitten wird
+components.html(html_code, height=950)
