@@ -9,9 +9,8 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("Proximity Resonance Map")
-st.markdown("### Das soziologische Kraftfeld & Auto-Kalibrierung")
-st.write("Wähle unten deine 3 initialen Eichpunkte. Das System verortet deinen Schwerpunkt im Feld. Klicke im Anschluss auf beliebige andere Paare, die dir im Raum näher stehen – sie kalibrieren dein Profil sofort automatisch nach!")
+st.title("Der Beziehungs-Spiegel")
+st.markdown("### Welche Beziehungs-Architektur suchst du wirklich?")
 
 # Das vollständige 50er-Hybrid-Dataset im Backend
 archetypes = {
@@ -70,23 +69,29 @@ archetypes = {
     "Kunis_Kutcher": {"K1": 4, "K2": 4, "name": "Mila Kunis & Ashton Kutcher"}
 }
 
-# UI Dropdowns zur initialen Verortung (oben als Kalibrierung)
-st.markdown("### 🎛️ Initiale Eichpunkte (Kalibrierung)")
+# Schritt 1: Die intuitive Eingabe im oberen Bereich
+st.markdown("### 1. Welche Paare führen deiner Meinung nach eine gute Beziehung?")
+st.write("Wähle drei Paare aus, die dich inspirieren:")
+
 col1, col2, col3 = st.columns(3)
 keys = list(archetypes.keys())
 
 with col1:
-    sel1_key = st.selectbox("Paar 1", keys, index=0, format_func=lambda x: archetypes[x]["name"])
+    sel1_key = st.selectbox("Erstes Paar", keys, index=0, format_func=lambda x: archetypes[x]["name"])
 with col2:
-    sel2_key = st.selectbox("Paar 2", keys, index=4, format_func=lambda x: archetypes[x]["name"])
+    sel2_key = st.selectbox("Zweites Paar", keys, index=4, format_func=lambda x: archetypes[x]["name"])
 with col3:
-    sel3_key = st.selectbox("Paar 3", keys, index=24, format_func=lambda x: archetypes[x]["name"])
+    sel3_key = st.selectbox("Drittes Paar", keys, index=24, format_func=lambda x: archetypes[x]["name"])
 
 initial_selection = [sel1_key, sel2_key, sel3_key]
 archetypes_json = json.dumps(archetypes)
 initial_selection_json = json.dumps(initial_selection)
 
-# HTML/JS Kraftfeld-Visualisierung mit Auto-Kalibrierung
+st.markdown("---")
+st.markdown("### 2. Siehst du, welche dir im Feld am nächsten sind?")
+st.write("Die markierten Punkte in der Karte spiegeln deinen Schwerpunkt wider. Klicke im Feld auf andere Paare, wenn du merkst, dass sie dir eigentlich noch näher stehen – sie kalibrieren dein Profil sofort nach.")
+
+# HTML/JS Kraftfeld-Visualisierung
 html_code = """
 <!DOCTYPE html>
 <html lang="de">
@@ -127,24 +132,19 @@ html_code = """
             z-index: 10;
             white-space: nowrap;
         }
-        .profile-panel {
+        .explanation-panel {
             margin-top: 15px;
-            font-size: 13px;
+            font-size: 14px;
             background: #f8f9fa;
-            padding: 12px 20px;
+            padding: 15px 20px;
             border-radius: 8px;
             border: 1px solid #dadce0;
             width: 560px;
-            text-align: center;
+            line-height: 1.5;
         }
-        .active-tag {
-            display: inline-block;
-            background: #e8f0fe;
+        .highlight-name {
             color: #1a73e8;
-            padding: 3px 8px;
-            border-radius: 4px;
-            margin: 0 3px;
-            font-weight: 500;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -154,8 +154,9 @@ html_code = """
         <div id="tooltip" class="tooltip"></div>
     </div>
     
-    <div class="profile-panel" id="profile-text">
-        <strong>Aktive Kalibrierung:</strong> Lade...
+    <div class="explanation-panel" id="explanation-text">
+        <strong>Weißt du, was deren Beziehung gemeinsam hat?</strong><br>
+        Lade Erklärung...
     </div>
 
     <script>
@@ -192,7 +193,7 @@ html_code = """
         // Der User-Punkt ("YOU")
         nodes.push({ 
             key: 'you', 
-            name: 'YOU (Dein Profil)', 
+            name: 'Dein Schwerpunkt', 
             r: 15, 
             color: '#d93025', 
             x: width / 2, 
@@ -212,7 +213,7 @@ html_code = """
             .style("cursor", "pointer")
             .on("mouseover", function(event, d) {
                 tooltip.style("opacity", 1)
-                       .html("<strong>" + d.name + "</strong><br>" + (d.key === 'you' ? "Dein aktueller Schwerpunkt" : "Klick, um als näheren Anker zu übernehmen"))
+                       .html("<strong>" + d.name + "</strong><br>" + (d.key === 'you' ? "Dein aktueller Standort" : "Klick, wenn dir dieses Paar näher steht"))
                        .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
                        .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
             })
@@ -222,7 +223,6 @@ html_code = """
             .on("click", function(event, d) {
                 if (d.key === 'you') return;
                 
-                // Auto-Kalibrierung: Wenn ein Paar im Feld angeklickt wird, rotiert es in die aktive 3er-Auswahl (FIFO)
                 if (!activeSelection.includes(d.key)) {
                     activeSelection.shift();
                     activeSelection.push(d.key);
@@ -237,7 +237,6 @@ html_code = """
         }
 
         function updateField() {
-            // Schwerpunkt aus den 3 aktiven Punkten berechnen
             let sumK1 = 0, sumK2 = 0;
             activeSelection.forEach(k => {
                 sumK1 += archetypes[k].K1;
@@ -253,7 +252,6 @@ html_code = """
             youNode.x = targetX;
             youNode.y = targetY;
 
-            // Markierungen im Feld aktualisieren (Aktive Anker gelb)
             nodeElements.attr("fill", d => {
                 if (d.key === 'you') return '#d93025';
                 return activeSelection.includes(d.key) ? '#f9ab00' : '#1a73e8';
@@ -262,15 +260,22 @@ html_code = """
                 return activeSelection.includes(d.key) ? 10 : 6;
             });
 
-            // Text-Diagnose und aktive Tags aktualisieren
-            const k1_desc = targetK1 < 1.7 ? "Egalitär" : targetK1 < 2.5 ? "Asymmetrisch" : targetK1 < 3.5 ? "Symbiotisch" : "Autonom";
-            const k2_desc = targetK2 < 1.7 ? "Hermetisch" : targetK2 < 2.5 ? "Repräsentativ" : targetK2 < 3.5 ? "Subversiv" : "Offen";
-            
-            const tagsHtml = activeSelection.map(k => '<span class="active-tag">' + archetypes[k].name + '</span>').join('');
+            // Soziologische Übersetzung in einfache, elegante Erklärungen
+            const k1_text = targetK1 < 1.7 ? "eine tiefe, gleichberechtigte Partnerschaft auf Augenhöhe ohne versteckte Machtkämpfe" :
+                            targetK1 < 2.5 ? "eine klare Struktur mit einer klaren Rollenverteilung und gegenseitiger Führung" :
+                            targetK1 < 3.5 ? "eine intensive, fast bedingungslose Verschmelzung, bei der die Grenzen verschwimmen" :
+                            "absolute Eigenständigkeit zweier starker Individuen, die sich freiwillig ergänzen";
 
-            document.getElementById('profile-text').innerHTML = 
-                "<strong>Aktive Kalibrierung (Anker):</strong> " + tagsHtml + "<br>" +
-                "<strong>Dein soziologisches Profil:</strong> Binnen-Dynamik: <em>" + k1_desc + "</em> | Außengrenze: <em>" + k2_desc + "</em>";
+            const k2_text = targetK2 < 1.7 ? "einen hermetisch abgeschirmten Rückzugsort nur für euch beide, abgeschottet von der Außenwelt" :
+                            targetK2 < 2.5 ? "eine bewusste Inszenierung nach außen – eure Beziehung hat auch eine repräsentative gesellschaftliche Funktion" :
+                            targetK2 < 3.5 ? "einen bewussten Bruch mit Konventionen; ihr lebt nach euren eigenen, unkonventionellen Regeln" :
+                            "völlige Offenheit und die nahtlose Einbindung in ein großes, gemeinsames soziales Netzwerk";
+
+            const namesList = activeSelection.map(k => '<span class="highlight-name">' + archetypes[k].name + '</span>').join(', ');
+
+            document.getElementById('explanation-text').innerHTML = 
+                "<strong>3. Weißt du, was deren Beziehung gemeinsam hat?</strong><br><br>" +
+                "Deine aktuellen Anker (<strong>" + namesList + "</strong>) zeigen: Du sehnst dich im Kern nach <strong>" + k1_text + "</strong>, kombiniert mit <strong>" + k2_text + "</strong>.";
 
             simulation.alpha(0.5).restart();
         }
@@ -284,4 +289,4 @@ html_code = """
 html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
 html_code = html_code.replace("__INITIAL_SELECTION__", initial_selection_json)
 
-components.html(html_code, height=530)
+components.html(html_code, height=560)
