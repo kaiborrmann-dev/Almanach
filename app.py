@@ -1,5 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
+import json
 
 # Streamlit Layout konfigurieren
 st.set_page_config(
@@ -80,7 +81,7 @@ with col2:
 with col3:
     sel3_key = st.selectbox("Eichpunkt 3", keys, index=10, format_func=lambda x: archetypes[x]["name"])
 
-# Werte für Javascript übergeben
+# Werte für Javascript vorbereiten
 sel1 = archetypes[sel1_key]
 sel2 = archetypes[sel2_key]
 sel3 = archetypes[sel3_key]
@@ -88,10 +89,9 @@ sel3 = archetypes[sel3_key]
 target_k1 = (sel1["K1"] + sel2["K1"] + sel3["K1"]) / 3
 target_k2 = (sel1["K2"] + sel2["K2"] + sel3["K2"]) / 3
 
-# Übergabe des Datensatzes und der Nutzer-Ziele an die D3.js Visualisierung
-import json
 archetypes_json = json.dumps(archetypes)
 
+# HTML-Code mit korrekt geschützten (verdoppelten) geschweiften Klammern für den F-String
 html_code = f"""
 <!DOCTYPE html>
 <html lang="de">
@@ -180,9 +180,9 @@ html_code = f"""
            .style("stroke-dasharray", "4,4");
 
         const keys = Object.keys(archetypes);
-        let nodes = keys.map((key) => {
+        let nodes = keys.map((key) => {{
             const item = archetypes[key];
-            return {
+            return {{
                 key: key,
                 name: item.name,
                 K1: item.K1,
@@ -190,10 +190,10 @@ html_code = f"""
                 r: 5,
                 color: '#1a73e8',
                 match: 50
-            };
-        });
+            }};
+        }});
 
-        nodes.push({ 
+        nodes.push({{ 
             key: 'you', 
             name: 'YOU', 
             r: 16, 
@@ -201,7 +201,7 @@ html_code = f"""
             fx: width / 2, 
             fy: height / 2, 
             match: 100 
-        });
+        }});
 
         const getDistance = (match) => 15 + ((100 - match) / 100) * 170;
 
@@ -217,21 +217,21 @@ html_code = f"""
             .attr("r", d => d.r)
             .attr("fill", d => d.color)
             .style("cursor", d => d.key === 'you' ? "default" : "pointer")
-            .on("mouseover", function(event, d) {
-                if (d.key !== 'you') {
+            .on("mouseover", function(event, d) {{
+                if (d.key !== 'you') {{
                     d3.select(this).attr("r", 8).attr("fill", "#1557b0");
                     tooltip.style("opacity", 1)
                            .html(`<strong>${{d.name}}</strong><br>Strukturelle Nähe: ${{d.match.toFixed(1)}}%`)
                            .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
                            .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
                 }
-            })
-            .on("mouseout", function(event, d) {
-                if (d.key !== 'you') {
+            }})
+            .on("mouseout", function(event, d) {{
+                if (d.key !== 'you') {{
                     d3.select(this).attr("r", d.r).attr("fill", d.color);
                     tooltip.style("opacity", 0);
                 }
-            });
+            }});
 
         svg.append("text")
             .attr("x", width / 2)
@@ -244,15 +244,15 @@ html_code = f"""
             .style("font-weight", "bold")
             .style("pointer-events", "none");
 
-        function ticked() {
+        function ticked() {{
             nodeElements
                 .attr("cx", d => d.key === 'you' ? width / 2 : d.x)
                 .attr("cy", d => d.key === 'you' ? height / 2 : d.y);
-        }
+        }}
 
         let totalMatch = 0;
-        nodes.forEach(n => {
-            if (n.key !== 'you') {
+        nodes.forEach(n => {{
+            if (n.key !== 'you') {{
                 const diffK1 = Math.abs(n.K1 - targetK1);
                 const diffK2 = Math.abs(n.K2 - targetK2);
                 const totalDiff = Math.sqrt(diffK1 * diffK1 + diffK2 * diffK2);
@@ -260,7 +260,7 @@ html_code = f"""
                 n.match = match;
                 totalMatch += match;
             }
-        });
+        }});
 
         const avgMatch = totalMatch / (nodes.length - 1);
         document.getElementById('match-val').innerText = avgMatch.toFixed(2) + '%';
@@ -273,5 +273,4 @@ html_code = f"""
 </html>
 """
 
-# Rendern der Komponente in Streamlit
 components.html(html_code, height=480)
