@@ -10,8 +10,8 @@ st.set_page_config(
 )
 
 st.title("Proximity Resonance Map")
-st.markdown("### Der soziologische Spiegel deines Begehrens")
-st.write("Klicke direkt in der Karte nacheinander auf **3 Prominente oder fiktive Ikonen**, um deine Wunsch-Konstellation zu bilden und den Raum neu zu zentrieren.")
+st.markdown("### Das soziologische Kraftfeld")
+st.write("Bestimme unten deine 3 Ausgangs-Eichpunkte, um dein initiales Profil zu setzen. Klicke danach beliebig auf Prominente im Feld, um deine Position dynamisch zu verschieben und die Sogwirkung zu erleben.")
 
 # Das vollständige 50er-Hybrid-Dataset im Backend
 archetypes = {
@@ -70,9 +70,22 @@ archetypes = {
     "Kunis_Kutcher": {"K1": 4, "K2": 4, "name": "Mila Kunis & Ashton Kutcher"}
 }
 
-archetypes_json = json.dumps(archetypes)
+# UI Dropdowns zur initialen Verortung (die 3 Eichpunkte des Users)
+col1, col2, col3 = st.columns(3)
+keys = list(archetypes.keys())
 
-# HTML-Code mit direktem interaktiven Klicken auf die D3-Knoten
+with col1:
+    sel1_key = st.selectbox("Eichpunkt 1", keys, index=0, format_func=lambda x: archetypes[x]["name"])
+with col2:
+    sel2_key = st.selectbox("Eichpunkt 2", keys, index=4, format_func=lambda x: archetypes[x]["name"])
+with col3:
+    sel3_key = st.selectbox("Eichpunkt 3", keys, index=24, format_func=lambda x: archetypes[x]["name"])
+
+initial_selection = [sel1_key, sel2_key, sel3_key]
+archetypes_json = json.dumps(archetypes)
+initial_selection_json = json.dumps(initial_selection)
+
+# HTML/JS Kraftfeld-Visualisierung
 html_code = """
 <!DOCTYPE html>
 <html lang="de">
@@ -92,7 +105,7 @@ html_code = """
         #map-container {
             position: relative;
             width: 600px;
-            height: 400px;
+            height: 450px;
             background: #ffffff;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -113,24 +126,15 @@ html_code = """
             z-index: 10;
             white-space: nowrap;
         }
-        .selection-panel {
+        .profile-panel {
             margin-top: 15px;
             font-size: 13px;
             background: #f8f9fa;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 8px;
             border: 1px solid #dadce0;
             width: 560px;
             text-align: center;
-        }
-        .selected-tag {
-            display: inline-block;
-            background: #e8f0fe;
-            color: #1a73e8;
-            padding: 3px 8px;
-            border-radius: 4px;
-            margin: 0 4px;
-            font-weight: 500;
         }
     </style>
 </head>
@@ -140,16 +144,16 @@ html_code = """
         <div id="tooltip" class="tooltip"></div>
     </div>
     
-    <div class="selection-panel">
-        <strong>Gewählte Eichpunkte (max. 3):</strong> <span id="selection-text">Noch keine gewählt (Klicke auf Punkte)</span>
+    <div class="profile-panel" id="profile-text">
+        <strong>Dein aktuelles Begehrensprofil:</strong> Berechne...
     </div>
 
     <script>
         const archetypes = __ARCHETYPES_JSON__;
-        let selectedKeys = [];
+        let activeSelection = __INITIAL_SELECTION__;
 
         const width = 600;
-        const height = 400;
+        const height = 450;
         
         const svg = d3.select("#map-container")
                       .append("svg")
@@ -158,46 +162,38 @@ html_code = """
 
         const tooltip = d3.select("#tooltip");
 
-        const rings = [60, 120, 180];
-        svg.selectAll(".ring")
-           .data(rings)
-           .enter().append("circle")
-           .attr("cx", width / 2)
-           .attr("cy", height / 2)
-           .attr("r", d => d)
-           .style("fill", "none")
-           .style("stroke", "#e8eaed")
-           .style("stroke-dasharray", "4,4");
-
         const keys = Object.keys(archetypes);
         let nodes = keys.map((key) => {
             const item = archetypes[key];
+            // Position im Raum anhand der K1/K2 Koordinaten aufspannen (kein fester Kern/Rand mehr)
+            const posX = 80 + (item.K2 - 1) * 140 + (Math.random() * 30 - 15);
+            const posY = 80 + (item.K1 - 1) * 90 + (Math.random() * 30 - 15);
             return {
                 key: key,
                 name: item.name,
                 K1: item.K1,
                 K2: item.K2,
+                x: posX,
+                y: posY,
                 r: 6,
                 color: '#1a73e8',
                 match: 50
             };
         });
 
+        // Der User-Punkt ("YOU") bewegt sich frei im Feld
         nodes.push({ 
             key: 'you', 
-            name: 'YOU', 
-            r: 16, 
+            name: 'YOU (Dein Profil)', 
+            r: 14, 
             color: '#d93025', 
-            fx: width / 2, 
-            fy: height / 2, 
+            x: width / 2, 
+            y: height / 2, 
             match: 100 
         });
 
-        const getDistance = (match) => 15 + ((100 - match) / 100) * 170;
-
-        const simulation = d3.forceSimulation(nodes.filter(n => n.key !== 'you'))
-            .force("collide", d3.forceCollide().radius(d => d.r + 4).iterations(2))
-            .force("radial", d3.forceRadial(d => getDistance(d.match), width / 2, height / 2).strength(0.3))
+        const simulation = d3.forceSimulation(nodes)
+            .force("collide", d3.forceCollide().radius(d => d.r + 5))
             .on("tick", ticked);
 
         const nodeElements = svg.append("g")
@@ -206,14 +202,12 @@ html_code = """
             .enter().append("circle")
             .attr("r", d => d.r)
             .attr("fill", d => d.color)
-            .style("cursor", d => d.key === 'you' ? "default" : "pointer")
+            .style("cursor", "pointer")
             .on("mouseover", function(event, d) {
-                if (d.key !== 'you') {
-                    tooltip.style("opacity", 1)
-                           .html("<strong>" + d.name + "</strong><br>Klick zum Auswählen (Eichpunkt)")
-                           .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
-                           .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
-                }
+                tooltip.style("opacity", 1)
+                       .html("<strong>" + d.name + "</strong><br>" + (d.key === 'you' ? "Dein aktueller Standpunkt" : "Klick, um Position anzusteuern"))
+                       .style("left", (event.pageX - document.getElementById('map-container').getBoundingClientRect().left) + "px")
+                       .style("top", (event.pageY - document.getElementById('map-container').getBoundingClientRect().top) + "px");
             })
             .on("mouseout", function() {
                 tooltip.style("opacity", 0);
@@ -221,82 +215,67 @@ html_code = """
             .on("click", function(event, d) {
                 if (d.key === 'you') return;
                 
-                const index = selectedKeys.indexOf(d.key);
-                if (index > -1) {
-                    selectedKeys.splice(index, 1); // Abwählen, wenn schon gewählt
-                } else {
-                    if (selectedKeys.length >= 3) {
-                        selectedKeys.shift(); // Ältesten entfernen, wenn schon 3 gewählt
-                    }
-                    selectedKeys.push(d.key);
+                // Wenn der User auf einen Promi am Rand klickt, fügen wir ihn zur aktiven Auswahl hinzu (max 3, FIFO)
+                if (!activeSelection.includes(d.key)) {
+                    activeSelection.shift();
+                    activeSelection.push(d.key);
+                    updateField();
                 }
-                updateMap();
             });
-
-        svg.append("text")
-            .attr("x", width / 2)
-            .attr("y", height / 2)
-            .attr("dy", "0.3em")
-            .attr("text-anchor", "middle")
-            .text("YOU")
-            .style("fill", "white")
-            .style("font-size", "9px")
-            .style("font-weight", "bold")
-            .style("pointer-events", "none");
 
         function ticked() {
             nodeElements
-                .attr("cx", d => d.key === 'you' ? width / 2 : d.x)
-                .attr("cy", d => d.key === 'you' ? height / 2 : d.y);
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
         }
 
-        function updateMap() {
-            // UI aktualisieren
-            const tagContainer = document.getElementById('selection-text');
-            if (selectedKeys.length === 0) {
-                tagContainer.innerHTML = "Noch keine gewählt (Klicke auf Punkte)";
-            } else {
-                tagContainer.innerHTML = selectedKeys.map(k => '<span class="selected-tag">' + archetypes[k].name + '</span>').join('');
-            }
+        function updateField() {
+            // Berechne den neuen Schwerpunkt des Users basierend auf den 3 aktiven Punkten
+            let sumK1 = 0, sumK2 = 0;
+            activeSelection.forEach(k => {
+                sumK1 += archetypes[k].K1;
+                sumK2 += archetypes[k].K2;
+            });
+            const targetK1 = sumK1 / activeSelection.length;
+            const targetK2 = sumK2 / activeSelection.length;
 
-            // Farben der Knoten anpassen (Ausgewählte werden hervorgehoben)
+            // Zielkoordinaten für den "YOU"-Punkt im visuellen Feld
+            const targetX = 80 + (targetK2 - 1) * 140;
+            const targetY = 80 + (targetK1 - 1) * 90;
+
+            // Verschiebe den YOU-Punkt sanft zum neuen Schwerpunkt
+            const youNode = nodes.find(n => n.key === 'you');
+            youNode.x = targetX;
+            youNode.y = targetY;
+
+            // Farben aktualisieren (Aktive Auswahl gelb markieren)
             nodeElements.attr("fill", d => {
                 if (d.key === 'you') return '#d93025';
-                return selectedKeys.includes(d.key) ? '#f9ab00' : '#1a73e8';
-            }).attr("r", d => selectedKeys.includes(d.key) ? 9 : 6);
-
-            if (selectedKeys.length === 0) return;
-
-            // Ziel-Vektoren aus den ausgewählten Punkten berechnen
-            let targetK1 = 0, targetK2 = 0;
-            selectedKeys.forEach(k => {
-                targetK1 += archetypes[k].K1;
-                targetK2 += archetypes[k].K2;
-            });
-            targetK1 /= selectedKeys.length;
-            targetK2 /= selectedKeys.length;
-
-            // Physik-Simulation updaten
-            nodes.forEach(n => {
-                if (n.key !== 'you') {
-                    const diffK1 = Math.abs(n.K1 - targetK1);
-                    const diffK2 = Math.abs(n.K2 - targetK2);
-                    const totalDiff = Math.sqrt(diffK1 * diffK1 + diffK2 * diffK2);
-                    n.match = Math.max(5, Math.min(98, 100 - (totalDiff / 4.24) * 90));
-                }
+                return activeSelection.includes(d.key) ? '#f9ab00' : '#1a73e8';
+            }).attr("r", d => {
+                if (d.key === 'you') return 14;
+                return activeSelection.includes(d.key) ? 9 : 6;
             });
 
-            simulation.force("radial", d3.forceRadial(d => getDistance(d.match), width / 2, height / 2).strength(0.3));
-            simulation.alpha(1).restart();
+            // Text-Diagnose aktualisieren
+            const k1_desc = targetK1 < 1.7 ? "Egalitär" : targetK1 < 2.5 ? "Asymmetrisch" : targetK1 < 3.5 ? "Symbiotisch" : "Autonom";
+            const k2_desc = targetK2 < 1.7 ? "Hermetisch" : targetK2 < 2.5 ? "Repräsentativ" : targetK2 < 3.5 ? "Subversiv" : "Offen";
+            
+            document.getElementById('profile-text').innerHTML = 
+                "<strong>Aktive Anker:</strong> " + activeSelection.map(k => archetypes[k].name).join(" + ") + "<br>" +
+                "<strong>Dein verschobenes Profil:</strong> Binnen-Dynamik: <em>" + k1_desc + "</em> | Außengrenze: <em>" + k2_desc + "</em>";
+
+            simulation.alpha(0.5).restart();
         }
 
-        // Standardmäßig die ersten 3 für den Start aktivieren
-        selectedKeys = ['Clooney', 'Obama', 'Addams'];
-        updateMap();
+        // Initiales Feld berechnen
+        updateField();
     </script>
 </body>
 </html>
 """
 
 html_code = html_code.replace("__ARCHETYPES_JSON__", archetypes_json)
-components.html(html_code, height=520)
+html_code = html_code.replace("__INITIAL_SELECTION__", initial_selection_json)
+
+components.html(html_code, height=530)
