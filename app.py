@@ -1,58 +1,73 @@
 import streamlit as st
-import time
 
-# --- SEITEN-SETUP ---
-st.set_page_config(page_title="Milieu-Engine", layout="centered")
+st.set_page_config(page_title="Wahlverwandtschafts-Finder", layout="centered")
 
-st.title("🧭 Milieu-Spiegel: Prototyp")
-st.write("Beschreibe deinen Alltag, deine Werte und was dir im Leben wichtig ist. Die Engine verortet dich im gesellschaftlichen Koordinatensystem.")
+st.title("❤️ Der Wahlverwandtschafts-Finder")
+st.markdown("Echte Menschen, echte Selbstbeschreibungen – finde die resonanten Paare $P(xx)$.")
 
-# --- EINGABE-BEREICH ---
-user_input = st.text_area(
-    "Dein Text:", 
-    height=150, 
-    placeholder="Z. B. Ich arbeite als Lehrer, verbringe meine Wochenenden gern in der Natur oder auf Ausstellungen. Sicherheit ist mir weniger wichtig als Selbstverwirklichung..."
-)
+# Speicher für echte Profile in der Session
+if "profiles" not in st.session_state:
+    st.session_state["profiles"] = []
 
-if st.button("Milieu analysieren"):
-    if not user_input.strip():
-        st.warning("Bitte gib zuerst einen Text ein.")
-    else:
-        with st.spinner("Analysiere Text..."):
-            # Simuliere eine kleine Denkpause der "Engine"
-            time.sleep(1.5) 
+# --- 1. EINGABE: Echte Personen erzählen über sich ---
+st.subheader("1. Trag dein Profil ein")
+with st.form("user_input_form", clear_on_submit=True):
+    name = st.text_input("Dein Name / Alias")
+    bio = st.text_area("Erzähl etwas über dich (Was treibt dich an? Woran glaubst du? Was liebst du?):")
+    submitted = st.form_submit_button("Profil abschicken")
+    
+    if submitted and name and bio:
+        # Extrahiere signifikante Wörter als Merkmale/Prädikate aus dem Text (Filter für kurze Füllwörter)
+        extracted_preds = set(word.lower().strip(".,!?;:()[]") for word in bio.split() if len(word) > 3)
+        
+        # Profil speichern
+        st.session_state["profiles"].append({
+            "id": name,
+            "bio": bio,
+            "preds": extracted_preds
+        })
+        st.success(f"Danke, {name}! Dein Profil wurde aufgenommen.")
+
+st.divider()
+
+# --- 2. AKTUELLER BESTAND ---
+st.subheader("2. Eingetragene Personen im Raum")
+profiles = st.session_state["profiles"]
+
+if profiles:
+    for p in profiles:
+        with st.expander(f"👤 {p['id']}"):
+            st.write(f"*„{p['bio']}“*")
+            st.caption(f"Extrahierte Resonanz-Marker: {list(p['preds'])}")
+else:
+    st.info("Noch keine Profile eingetragen. Fülle oben das Formular aus!")
+
+st.divider()
+
+# --- 3. BERECHNUNG DER WAHLVERWANDTSCHAFTEN P(xx) ---
+st.subheader("3. Ermittelte Paare P(xx)")
+
+if len(profiles) >= 2:
+    pairs = []
+    n = len(profiles)
+    
+    # Paarbildung ohne künstliche Mengen (Pluralogischer Ansatz P(xx))
+    for i in range(n):
+        for j in range(i + 1, n):
+            p1, p2 = profiles[i], profiles[j]
+            shared_resonances = p1["preds"].intersection(p2["preds"])
             
-            # --- SIMPLE MOCK-ENGINE ---
-            text = user_input.lower()
-            x_orientierung = 5  
-            y_lage = 5          
-            
-            # Kultur/Werte-Achse
-            if any(word in text for word in ["natur", "selbstverwirklichung", "kunst", "kreativ", "offen"]):
-                x_orientierung += 3
-            if any(word in text for word in ["sicherheit", "familie", "tradition", "ordnung"]):
-                x_orientierung -= 3
+            # Bedingung für Wahlverwandtschaft: Mindestens eine inhaltliche Schnittmenge
+            if len(shared_resonances) > 0:
+                pairs.append((p1["id"], p2["id"], shared_resonances))
                 
-            # Soziale-Lage-Achse
-            if any(word in text for word in ["management", "geld", "karriere", "führung"]):
-                y_lage += 3
-            if any(word in text for word in ["arbeitslos", "schulden", "stress", "hart"]):
-                y_lage -= 3
-                
-            x_orientierung = max(0, min(10, x_orientierung))
-            y_lage = max(0, min(10, y_lage))
-            
-            # --- AUSGABE ---
-            st.success("Analyse abgeschlossen!")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="X-Achse (Kultur & Werte)", value=f"{x_orientierung} / 10", help="0 = Traditionell | 10 = Postmodern")
-            with col2:
-                st.metric(label="Y-Achse (Soziale Lage)", value=f"{y_lage} / 10", help="0 = Prekär | 10 = Gehoben")
-            
+    if pairs:
+        st.success(f"{len(pairs)} plurale Paare $P(xx)$ mit echter Resonanz gefunden:")
+        for idx, (u1, u2, resonances) in enumerate(pairs, 1):
+            st.write(f"**Paar {idx} P(xx):** `{u1}` ⟷ `{u2}`")
+            st.caption(f"Gemeinsame Anknüpfungspunkte: {list(resonances)}")
             st.markdown("---")
-            kultur_label = "Postmodern / Progressiv" if x_orientierung >= 5 else "Traditionell / Bewahrend"
-            lage_label = "Gehoben / Etabliert" if y_lage >= 5 else "Prekär / Mitte"
-            
-            st.info(f"**Dein berechneter Quadrant:** {lage_label} trifft auf {kultur_label}")
+    else:
+        st.warning("Keine Überschneidungen in den Texten gefunden. Schreibt detaillierter über eure Leidenschaften!")
+else:
+    st.info("Es werden mindestens 2 Personen benötigt, um Paare $P(xx)$ zu bilden.")
