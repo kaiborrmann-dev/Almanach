@@ -1,7 +1,7 @@
 import streamlit as st
 from typing import Set, Dict, List
 
-# --- Offizielle KldB-Datenbank (Auszug für den Demonstrator) ---
+# --- Offizielle KldB-Datenbank ---
 KLDB_DATABASE = {
     "24104": {
         "title": "Softwareentwicklung und Programmierung",
@@ -32,134 +32,99 @@ KLDB_DATABASE = {
 st.set_page_config(page_title="Arbeitsmarkt-Lotse: KldB & Kultur", layout="wide")
 
 st.title("🏛️ Arbeitsmarkt-Lotse: Soziologisches Matching meets KldB")
-st.markdown("Dieser Demonstrator zeigt, wie weiche, unstrukturierte Lebensentwürfe über einen **automatisierten KldB-Baum** erfasst und mit Kultur-Operatoren ($\\text{mA}$) und Kontexten ($\\text{kA}$) verknüpft werden.")
+st.markdown("Passgenauigkeit jenseits starrer Raster: Verknüpfung von Freitext-Traits, KldB-Baum und Kultur-Operatoren ($\\text{mA}$).")
 
-# --- Datenmodell für Akteure ---
-class Actor:
-    def __init__(self, id_str: str, role: str, kldb_code: str, operators: Dict[str, str], bio: str):
-        self.id_str = id_str
-        self.role = role  # "Bewerber" oder "Arbeitgeber"
-        self.kldb_code = kldb_code
-        self.operators = operators
-        self.bio = bio
-        self.description = bio # Kompatibilität für Beschreibungen
-
-# Initialisierung des Markt-Pools in session_state
-if "market_pool" not in st.session_state:
-    st.session_state["market_pool"] = [
-        Actor(
-            id_str="KI-Forschungsinstitut Berlin", 
-            role="Arbeitgeber", 
-            kldb_code="24104", 
-            operators={"mA": "Autonom & Eigenverantwortlich", "kA": "KI & Technologie"},
-            bio="Sucht Köpfe für strukturierte Datenmodelle und formale Systemanalysen."
-        ),
-        Actor(
-            id_str="Digital-Agentur Kreuzberg", 
-            role="Arbeitgeber", 
-            kldb_code="24104", 
-            operators={"mA": "Agil & Interdisziplinär", "kA": "KI & Technologie"},
-            bio="Entwickelt Software-Lösungen in flachen Hierarchien."
-        )
+# --- Initialisierung des Arbeitgeber-Pools in session_state ---
+if "employer_pool" not in st.session_state:
+    st.session_state["employer_pool"] = [
+        {
+            "id_str": "KI-Forschungsinstitut Berlin", 
+            "kldb_code": "24104", 
+            "mA": "Autonom & Eigenverantwortlich", 
+            "kA": "KI & Technologie",
+            "description": "Sucht Köpfe für strukturierte Datenmodelle und formale Systemanalysen."
+        },
+        {
+            "id_str": "Digital-Agentur Kreuzberg", 
+            "kldb_code": "24104", 
+            "mA": "Agil & Interdisziplinär", 
+            "kA": "KI & Technologie",
+            "description": "Entwickelt Software-Lösungen in flachen Hierarchien."
+        },
+        {
+            "id_str": "Grünflächen-Amt Mitte", 
+            "kldb_code": "71102", 
+            "mA": "Strukturiert & Klassisch", 
+            "kA": "Natur & Umwelt",
+            "description": "Betreut städtische Parkanlagen und ökologische Projekte."
+        }
     ]
 
-# --- 1. SEKTION: INTUITIVE EINGABE & AUTOMATISCHER KLDB-MAPPER ---
-st.header("1. Perspektive eingeben (Freitext & Soziologische Traits)")
+# --- 1. SEKTION: PERSÖNLICHES PROFIL (Live-Eingabe ohne Blockade) ---
+st.header("1. Ihr Profil & Ihre Perspektive")
 
-with st.form("user_input_form"):
-    col1, col2 = st.columns(2)
-    with col1:
-        user_name = st.text_input("Name / Alias", value="Sarah M.")
-        user_role = st.selectbox("Rolle", ["Bewerber (Arbeitssuchend)", "Arbeitgeber (Stelle anbieten)"])
-    with col2:
-        modus = st.selectbox("Arbeitsstil / Kultur (Operator mA)", ["Autonom & Eigenverantwortlich", "Agil & Interdisziplinär", "Strukturiert & Klassisch"])
-        kontext = st.selectbox("Themenfeld (Operator kA)", ["KI & Technologie", "Öffentlicher Sektor", "Wissenschaft & Bildung"])
+col1, col2 = st.columns(2)
+with col1:
+    user_name = st.text_input("Ihr Name / Alias", value="Dr. Thomas Weber")
+    modus = st.selectbox("Bevorzugter Arbeitsstil / Kultur (Operator mA)", ["Autonom & Eigenverantwortlich", "Agil & Interdisziplinär", "Strukturiert & Klassisch"])
+with col2:
+    kontext = st.selectbox("Bevorzugtes Themenfeld (Operator kA)", ["KI & Technologie", "Öffentlicher Sektor", "Wissenschaft & Bildung", "Natur & Umwelt"])
 
-    bio_text = st.text_area(
-        "Erzählen Sie frei von Ihren Interessen, Stärken oder Zielen (z.B. 'Ich liebe formale Logik, arbeite am liebsten autonom am Computer und beschäftige mich mit KI und Analyse'):",
-        value="Ich arbeite gerne autonom, beschäftige mich intensiv mit logischen Strukturen, Software-Analysen und KI-Technologien."
-    )
-    
-    submitted = st.form_submit_button("Profil analysieren & in den KldB-Baum einlesen")
+bio_text = st.text_area(
+    "Erzählen Sie frei von Ihren Stärken, Interessen oder Zielen (jeder Textänderung wird sofort ausgewertet):",
+    value="Ich beschäftige mich intensiv mit logischen Strukturen, Software-Analysen und KI-Technologien in der Forschung."
+)
 
-    if submitted and bio_text:
-        # Automatisierter KldB-Mapper (Durchsucht den Baum nach Keyword-Übereinstimmungen)
-        bio_lower = bio_text.lower()
-        best_match_code = "24104" # Standard-Fallback
-        max_hits = 0
-        
-        for code, data in KLDB_DATABASE.items():
-            hits = sum(1 for kw in data["keywords"] if kw in bio_lower)
-            if hits > max_hits:
-                max_hits = hits
-                best_match_code = code
+# Automatisierter KldB-Mapper läuft in Echtzeit bei jeder Eingabeänderung
+bio_lower = bio_text.lower()
+assigned_kldb = "24104" # Fallback
+max_hits = 0
+for code, data in KLDB_DATABASE.items():
+    hits = sum(1 for kw in data["keywords"] if kw in bio_lower)
+    if hits > max_hits:
+        max_hits = hits
+        assigned_kldb = code
 
-        role_val = "Bewerber" if "Bewerber" in user_role else "Arbeitgeber"
-        
-        new_actor = Actor(
-            id_str=user_name,
-            role=role_val,
-            kldb_code=best_match_code,
-            operators={"mA": modus, "kA": kontext},
-            bio=bio_text
-        )
-        st.session_state["market_pool"].append(new_actor)
-        st.success(f"Profil erfolgreich verarbeitet! Dem Profil wurde der offizielle KldB-Code `{best_match_code}` zugewiesen.")
+kldb_info = KLDB_DATABASE.get(assigned_kldb, {})
 
-# --- Infobox zum ermittelten KldB-Code des letzten Eintrags ---
-if st.session_state["market_pool"]:
-    latest = st.session_state["market_pool"][-1]
-    kldb_info = KLDB_DATABASE.get(latest.kldb_code, {"title": "Unbekannt", "bereich": "Unbekannt", "niveau": "Unbekannt"})
-    
-    with st.expander("🔍 Details zur automatischen KldB-Klassifikation (Amtlicher Hintergrund)", expanded=True):
-        st.write(f"**Aktuell analysiertes Profil:** `{latest.id_str}` ({latest.role})")
-        st.write(f"* **Zugeordneter KldB-Code:** `{latest.kldb_code}`")
-        st.write(f"* **Berufsbezeichnung:** {kldb_info['title']}")
-        st.write(f"* **Berufsbereich (1. Stelle):** {kldb_info['bereich']}")
-        st.write(f"* **Anforderungsniveau (5. Stelle):** {kldb_info['niveau']}")
-        st.info("💡 **Mehrwert für die Arbeitsagentur:** Die App übersetzt den emotionalen/inhaltlichen Freitext eigenständig in den passenden amtlichen Statistik-Schlüssel, ohne dass der Bürger Formulare wälzen muss.")
+# Transparente Anzeige der automatischen KldB-Zuordnung
+st.info(f"🔍 **Automatische KldB-Analyse:** Ihr Text wurde dem Code **`{assigned_kldb}`** (*{kldb_info.get('title')}*) im Bereich *{kldb_info.get('bereich')}* zugeordnet ({kldb_info.get('niveau')}).")
 
 st.divider()
 
 # --- 2. SEKTION: LEBENSLAUF-ASSISTENT ---
 with st.expander("📝 Lebenslauf-Assistent (Optionale Hilfe)"):
     st.markdown("**Sollen wir Ihnen beim Erstellen eines tabellarischen Lebenslaufes behilflich sein?**")
-    st.markdown("Dann benötigen wir noch folgende Angaben:")
     col_a, col_b = st.columns(2)
     with col_a:
-        st.text_input("Zuletzt ausgeübte Stationen / Tätigkeiten")
+        st.text_input("Zuletzt ausgeübte Stationen / Tätigkeiten", key="cv_stations")
     with col_b:
-        st.text_input("Kernqualifikationen / Studienschwerpunkt")
-    if st.button("Tabellarischen Lebenslauf generieren"):
-        st.success("Der Entwurf wurde basierend auf Ihren Angaben und dem KldB-Profil strukturiert.")
+        st.text_input("Kernqualifikationen / Studienschwerpunkt", key="cv_skills")
+    if st.button("Lebenslauf-Struktur generieren"):
+        st.success("Struktur erfolgreich generiert und auf Basis Ihres KldB-Profils formatiert!")
 
 st.divider()
 
-# --- 3. SEKTION: STRUKTURLOGISCHES MATCHING ---
-st.header("2. Strukturlogische Passungs-Analyse")
-st.markdown("Das System prüft nun: Gleicher KldB-Zweig $\\land$ Übereinstimmender Arbeitsstil ($\\text{mA}$) $\\land$ Kontext ($\\text{kA}$).")
+# --- 3. SEKTION: PASSUNGS-ANALYSE (Reagiert direkt auf Änderungen) ---
+st.header("2. Passungs-Analyse mit dem Arbeitsmarkt")
+st.markdown("Das System gleicht Ihr dynamisches Profil in Echtzeit mit den registrierten Arbeitgebern ab ($\\text{KldB-Match} \\land \\text{mA}$).")
 
-if st.button("Passende Stellen / Profile im Arbeitsmarkt ermitteln"):
-    pool = st.session_state["market_pool"]
-    active_user = pool[-1]
+# Matching-Logik direkt ausführen (kein versteckter Button nötig, da es bei Änderung sofort reagieren soll)
+matches = []
+for employer in st.session_state["employer_pool"]:
+    kldb_match = employer["kldb_code"] == assigned_kldb
+    modus_match = employer["mA"] == modus
     
-    matches = []
-    for candidate in pool[:-1]:
-        if candidate.role != active_user.role:
-            kldb_match = candidate.kldb_code == active_user.kldb_code
-            modus_match = candidate.operators["mA"] == active_user.operators["mA"]
-            
-            if kldb_match and modus_match:
-                matches.append(candidate)
-                
-    if matches:
-        st.success(f"Es wurden {len(matches)} passfähige Verbindungen im Raum entdeckt:")
-        for idx, match in enumerate(matches, 1):
-            match_details = KLDB_DATABASE.get(match.kldb_code, {})
-            st.markdown(f"**Match {idx}:** `{active_user.id_str}` ⟷ `{match.id_str}`")
-            st.write(f"* **Gemeinsames Berufsfeld (KldB):** `{match.kldb_code}` ({match_details.get('title')})")
-            st.write(f"* **Kultur-Passung (Operator mA):** `{match.operators['mA']}`")
-            st.write(f"* **Beschreibung:** {match.description}")
-            st.markdown("---")
-    else:
-        st.warning("Keine exakte Passung gefunden. Entweder weicht der KldB-Bereich oder der Arbeitsstil (mA) ab. Versuchen Sie, die Beschreibung so anzupassen, dass sie zu den vorhandenen Stellen passt.")
+    if kldb_match and modus_match:
+        matches.append(employer)
+
+if matches:
+    st.success(f"Es wurden **{len(matches)}** passende Arbeitgeber für Ihr Profil im Raum entdeckt:")
+    for idx, m in enumerate(matches, 1):
+        st.markdown(f"**Match {idx}: `{m['id_str']}`**")
+        st.write(f"* **Berufsfeld (KldB):** `{m['kldb_code']}` ({kldb_info.get('title')})")
+        st.write(f"* **Kultur-Passung (mA):** `{m['mA']}`")
+        st.write(f"* **Stellenbeschreibung:** {m['description']}")
+        st.markdown("---")
+else:
+    st.warning("⚠️ Zur Zeit gibt es im System keine exakte Passung für diese Kombination aus KldB-Bereich und Arbeitsstil (`mA`). Ändern Sie testweise den Arbeitsstil oder passen Sie den Freitext an, um andere Branchen/Stilen zu matchen.")
