@@ -1,44 +1,48 @@
 import streamlit as st
-import plotly.express as px
-import pandas as pd
 import re
+import math
 
-st.set_page_config(page_title="Topologischer KldB-Cluster-Raum", layout="wide")
+st.set_page_config(page_title="Topologischer KldB-Raum", layout="wide")
 
-st.title("🌐 KldB-Raum als topologische Cluster-Landschaft")
-st.markdown("Ihre kumulierten Eingaben bestimmen Ihre Koordinaten im Raum. Der Graph zeigt in Echtzeit, welchem KldB-Cluster Sie sich topologisch annähern.")
+st.title("🌐 Topologischer KldB-Cluster-Raum")
+st.markdown("Ihre kumulierten Eingaben spannen einen multidimensionalen Vektor auf. Das System berechnet in Echtzeit die topologische Gravitation zu den KldB-Hauptclustern.")
 
-# Definierte KldB-Cluster mit festen 2D-Koordinaten im semantischen Raum und Merkmalen
+# Definierte KldB-Cluster mit Merkmalen und Koordinaten im semantischen Raum
 CLUSTER_DATA = [
     {
+        "id": "it",
         "cluster": "IT, Software & Geoinformatik",
         "code": "Bereich 2 (24xxx/25xxx)",
-        "x": 2.0, "y": 8.0,
-        "features": {"it", "software", "daten", "code", "logik", "analyse", "algorithmus", "ki", "geografie", "karte", "programmieren"}
+        "pos_x": 2.0, "pos_y": 8.0,
+        "features": {"it", "software", "daten", "code", "logik", "analyse", "algorithmus", "ki", "geografie", "karte", "programmieren", "system"}
     },
     {
+        "id": "kultur",
         "cluster": "Kultur, Medien & Archiv",
         "code": "Bereich 3 (31xxx/34xxx)",
-        "x": 8.0, "y": 7.0,
-        "features": {"historisch", "geschichte", "archiv", "kultur", "bibliothek", "text", "quellen", "sammlung", "karte", "landkarte"}
+        "pos_x": 8.0, "pos_y": 7.0,
+        "features": {"historisch", "geschichte", "archiv", "kultur", "bibliothek", "text", "quellen", "sammlung", "karte", "landkarte", "lesen", "schreiben"}
     },
     {
+        "id": "natur",
         "cluster": "Landwirtschaft, Natur & Vermessung",
         "code": "Bereich 7 (71xxx)",
-        "x": 3.0, "y": 2.0,
-        "features": {"natur", "tier", "tiere", "garten", "pflanzen", "erde", "grün", "wald", "umwelt", "vermessung"}
+        "pos_x": 3.0, "pos_y": 2.0,
+        "features": {"natur", "tier", "tiere", "garten", "pflanzen", "erde", "grün", "wald", "umwelt", "vermessung", "draußen"}
     },
     {
+        "id": "sozial",
         "cluster": "Gesundheit, Soziales & Pädagogik",
         "code": "Bereich 8 (81xxx)",
-        "x": 8.0, "y": 2.0,
-        "features": {"gesundheit", "krank", "pflege", "sozial", "helfen", "menschen", "kinder", "alt", "beratung", "medizin"}
+        "pos_x": 8.0, "pos_y": 2.0,
+        "features": {"gesundheit", "krank", "pflege", "sozial", "helfen", "menschen", "kinder", "alt", "beratung", "medizin", "lehr"}
     },
     {
+        "id": "wirtschaft",
         "cluster": "Wirtschaft, Verwaltung & Recht",
         "code": "Bereich 6 (61xxx)",
-        "x": 5.0, "y": 5.0,
-        "features": {"verwaltung", "amt", "recht", "wirtschaft", "organisation", "büro", "dokument"}
+        "pos_x": 5.0, "pos_y": 5.0,
+        "features": {"verwaltung", "amt", "recht", "wirtschaft", "organisation", "büro", "dokument", "struktur"}
     }
 ]
 
@@ -54,7 +58,7 @@ def add_input():
         st.session_state.history.append(text)
         st.session_state.input_box = ""
 
-# --- 1. EINGABE-BEREICH ---
+# --- 1. SEKTION: INPUT ---
 col_left, col_right = st.columns([1, 2])
 
 with col_left:
@@ -69,86 +73,69 @@ with col_left:
         st.session_state.input_box = ""
 
     if st.session_state.history:
-        st.markdown("**Akkumulierter Vektor:**")
+        st.markdown("**Akkumulierter Vektor (Historie):**")
         for i, h in enumerate(st.session_state.history, 1):
             st.caption(f"[{i}] „{h}“")
 
-# --- 2. BERECHNUNG DER KOORDINATEN & PLOTLY CLUSTER MAP ---
+# --- 2. SEKTION: TOPOLOGISCHE BERECHNUNG & GRAVITATION ---
 with col_right:
-    st.subheader("2. Topologischer Cluster-Raum")
+    st.subheader("2. Topologischer Gravitations-Standort")
     
-    # Gesamten Korpus auswerten
+    # Korpus auswerten
     full_corpus = " ".join(st.session_state.history).lower()
     user_tokens = set(re.findall(r'\b\w+\b', full_corpus))
     
-    # Dynamische Berechnung des Nutzer-Schwerpunkts (Gravitationszentrum)
-    # Startpunkt ist die Mitte (5.0, 5.0)
+    # Berechne den dynamischen Vektor (Schwerpunkt im Raum ausgehend von (5, 5))
     u_x, u_y = 5.0, 5.0
-    total_weight = 1.0
+    cluster_results = []
     
-    cluster_scores = []
     for c in CLUSTER_DATA:
         matches = user_tokens.intersection(c["features"])
         score = len(matches)
-        cluster_scores.append({"cluster": c["cluster"], "score": score})
         
         if score > 0:
-            # Gravitations-Verschiebung in Richtung des Clusters
-            u_x += (c["x"] - 5.0) * (score * 0.4)
-            u_y += (c["y"] - 5.0) * (score * 0.4)
-            total_weight += score
+            # Gravitationskraft zieht den Standort zum Cluster-Mittelpunkt
+            u_x += (c["pos_x"] - 5.0) * (score * 0.35)
+            u_y += (c["pos_y"] - 5.0) * (score * 0.35)
+            
+        cluster_results.append({
+            "cluster": c["cluster"],
+            "code": c["code"],
+            "score": score,
+            "matches": list(matches)
+        })
 
-    # DataFrame für Plotly aufbauen
-    df_clusters = pd.DataFrame(CLUSTER_DATA)
-    df_clusters["Typ"] = "KldB-Cluster"
-    df_clusters["Größe"] = 25
-    
-    # Nutzer-Punkt hinzufügen
-    df_user = pd.DataFrame([{
-        "cluster": "📍 Ihr Standort (Aktuelles Profil)",
-        "code": "Dynamischer Vektor",
-        "x": u_x,
-        "y": u_y,
-        "Typ": "Ihr Profil",
-        "Größe": 40
-    }])
-    
-    df_plot = pd.concat([df_clusters, df_user], ignore_index=True)
-    
-    # Scatter-Plot erstellen
-    fig = px.scatter(
-        df_plot, 
-        x="x", 
-        y="y", 
-        color="Typ", 
-        size="Größe",
-        text="cluster",
-        hover_data=["code"],
-        color_discrete_map={"KldB-Cluster": "#1f77b4", "Ihr Profil": "#ff7f0e"}
-    )
-    
-    fig.update_traces(textposition='top center')
-    fig.update_layout(
-        xaxis=dict(range=[0, 10], showgrid=True, zeroline=False),
-        yaxis=dict(range=[0, 10], showgrid=True, zeroline=False),
-        height=450,
-        margin=dict(l=20, r=20, t=20, b=20),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+    # Koordinaten im Rahmen [0, 10] halten
+    u_x = max(0.0, min(10.0, u_x))
+    u_y = max(0.0, min(10.0, u_y))
 
-# --- 3. DETAIL-ANALYSE DER NÄHE ---
+    # Visuelle Koordinaten-Box als Ersatz für Plotly
+    with st.container(border=True):
+        col_m1, col_m2, col_m3 = st.columns(3)
+        col_m1.metric("Topologische X-Koordinate", f"{u_x:.2f}")
+        col_m2.metric("Topologische Y-Koordinate", f"{u_y:.2f}")
+        col_m3.metric("Akkumulierte Tokens", len(user_tokens))
+        
+        if not user_tokens:
+            st.info("Standort im neutralen Zentrum (5.0, 5.0). Fügen Sie links Text hinzu, um den Punkt zu bewegen.")
+        else:
+            st.success(f"📍 Ihr aktueller Gravitationspunkt im KldB-Raum wurde errechnet.")
+
+# --- 3. SEKTION: CLUSTER-RESONANZ & NÄHE ---
 st.divider()
-st.subheader("3. Cluster-Resonanz & topologische Distanz")
+st.subheader("3. Resonanz in den KldB-Hauptclustern")
 
-if not user_tokens:
-    st.info("Der Raum befindet sich im neutralen Zentrum (5,5). Fügen Sie Aussagen hinzu, um die Gravitation zu aktivieren.")
-else:
-    # Sortiere nach Treffern
-    cluster_scores.sort(key=lambda x: x["score"], reverse=True)
-    
-    cols = st.columns(len(cluster_scores))
-    for idx, cs in enumerate(cluster_scores):
-        with cols[idx]:
-            st.metric(label=cs["cluster"], value=f"Treffer: {cs['score']}")
+# Nach Score sortieren
+cluster_results.sort(key=lambda x: x["score"], reverse=True)
+
+cols = st.columns(len(cluster_results))
+for idx, res in enumerate(cluster_results):
+    with cols[idx]:
+        with st.container(border=True):
+            st.markdown(f"**{res['cluster']}**")
+            st.caption(res["code"])
+            st.metric("Resonanz-Score", res["score"])
+            if res["matches"]:
+                st.write(f"✨ Treffer: `{', '.join(res['matches'])}`")
+            else:
+                st.caption("Keine direkte Resonanz.")
