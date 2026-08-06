@@ -1,121 +1,122 @@
 import streamlit as st
-from typing import Dict, List, Set
+from typing import Dict, Set
 
 st.set_page_config(page_title="Iterativer KldB-Suchbaum", layout="wide")
 
-st.title("🌲 Iterativer KldB-Suchbaum & Einengungs-Engine")
-st.markdown("Jede neue Eingabe wirkt als logischer Operator, der den Suchraum innerhalb der hierarchischen Klassifikation der Berufe (KldB) schrittweise verengt.")
+st.title("🌲 Iterativer KldB-Suchbaum & Ausschluss-Engine")
+st.markdown("Jede Eingabe verengt den Suchraum durch **progressive Elimination** unpassender KldB-Hauptbereiche und verfeinert die verbleibenden Zweige.")
 
-# Hierarchische KldB-Struktur (Beispiel-Baum mit Verzweigungen)
+# Umfassendere KldB-Struktur mit Bereichs-Profilen und Ausschluss-Logik
 KLDB_TREE = {
-    "Bereich 2: Unternehmerische Führung, IT, Naturwissenschaften": {
-        "keywords": {"it", "computer", "daten", "software", "forschung", "wissenschaft", "logik", "analyse", "ki"},
-        "untergruppen": {
-            "241: Informatik und Software": {
-                "keywords": {"software", "code", "programmieren", "ki", "python", "algorithmus", "entwicklung"},
-                "gaenge": {
-                    "24104": {"titel": "Softwareentwicklung & KI-Programmierung", "niveau": "Niveau 4 (Experte)"},
-                    "24102": {"titel": "IT-Systemanalyse & Datenbanken", "niveau": "Niveau 4 (Experte)"}
-                }
-            },
-            "251: Wissenschaft & Forschung": {
-                "keywords": {"forschung", "theorie", "universität", "analyse", "struktur", "akademisch"},
-                "gaenge": {
-                    "25192": {"titel": "Wissenschaftliche Forschung und Lehre", "niveau": "Niveau 4 (Promotion)"}
-                }
-            }
-        }
+    "Bereich 1: Land-, Forst- und Tierwirtschaft": {
+        "exclude_keywords": {"landkarte", "karte", "historisch", "it", "software", "code", "forschung", "archiv"},
+        "sub": ["Landwirtschaft", "Forstwirtschaft", "Tierpflege"]
     },
-    "Bereich 7: Land-, Forst-, Tierwirtschaft und Gartenbau": {
-        "keywords": {"natur", "tiere", "garten", "pflanzen", "draußen", "reisen", "umwelt"},
-        "untergruppen": {
-            "711: Gartenbau": {
-                "keywords": {"garten", "pflanzen", "erde", "grün", "landschaft"},
-                "gaenge": {
-                    "71102": {"titel": "Gartenbau und Landschaftsgestaltung", "niveau": "Niveau 2-3 (Fachkraft)"}
-                }
-            },
-            "731: Tierhaltung und Pflege": {
-                "keywords": {"tier", "tiere", "hund", "katze", "hof", "pflege"},
-                "gaenge": {
-                    "81202": {"titel": "Tierpflege und Natur-Umweltschutz", "niveau": "Niveau 2-3 (Fachkraft)"}
-                }
-            }
-        }
+    "Bereich 2: Unternehmerische Führung, IT, Naturwissenschaften & Geografie": {
+        "match_keywords": {"karte", "landkarte", "geografie", "daten", "analyse", "wissenschaft", "it", "forschung", "system"},
+        "sub": ["Geoinformatik & Kartografie", "Wissenschaftliche Forschung", "Softwareanalyse"]
+    },
+    "Bereich 3: Geisteswissenschaften, Kultur, Medien & Archiv": {
+        "match_keywords": {"historisch", "karte", "landkarte", "archiv", "geschichte", "kultur", "bibliothek", "museum", "sammlung"},
+        "sub": ["Archiv- und Bibliothekswesen", "Museums- und Ausstellungswesen", "Historische Forschung"]
+    },
+    "Bereich 4: Produktion, Fertigung & Handwerk": {
+        "exclude_keywords": {"landkarte", "karte", "historisch", "archiv", "forschung", "analyse"},
+        "sub": ["Metallbearbeitung", "Maschinenbau", "Produktion"]
+    },
+    "Bereich 5: Handel, Vertrieb, Tourismus & Wachdienst": {
+        "exclude_keywords": {"historisch", "archiv", "forschung", "geografie", "kartografie"},
+        "sub": ["Groß- und Außenhandel", "Tourismus", "Sicherheitsdienste"]
+    },
+    "Bereich 6: Unternehmensbezogene Dienstleistungen, Recht & Verwaltung": {
+        "match_keywords": {"verwaltung", "amt", "dokument", "ordnung", "register"},
+        "sub": ["Öffentliche Verwaltung", "Vermessungs- und Katasterwesen"]
+    },
+    "Bereich 8: Gesundheit, Soziales, Lehre & Erziehung": {
+        "exclude_keywords": {"landkarte", "karte", "historisch", "archiv", "sammlung"},
+        "sub": ["Gesundheitswesen", "Sozialarbeit", "Pädagogik"]
     }
 }
 
-# Initialisierung der kumulativen Eingabe-Historie im Session State
-if "input_history" not in st.session_state:
-    st.session_state["input_history"] = []
+# Initialisierung der Historie
+if "history" not in st.session_state:
+    st.session_state["history"] = []
 
-# --- 1. SEKTION: PROGRESSIVE EINGABE-KETTE ---
-st.subheader("1. Progressive Eingabe zur Baumnavigation")
-user_input = st.text_input(
-    "Geben Sie Merkmale, Interessen oder Aussagen ein (jeder neue Input engt den Suchbaum weiter ein):", 
-    placeholder="z.B. Ich interessiere mich für IT, danach: und programmiere in Python"
-)
-
-col_btn1, col_btn2 = st.columns([1, 4])
+# --- 1. SEKTION: INPUT ---
+st.subheader("1. Progressive Eingabe-Kette")
+col_in, col_btn1, col_btn2 = st.columns([3, 1, 1])
+with col_in:
+    new_input = st.text_input("Geben Sie ein Merkmal ein:", placeholder="z.B. Ich sammle historische Landkarten.")
 with col_btn1:
-    if st.button("Input hinzufügen", type="primary"):
-        if user_input:
-            st.session_state["input_history"].append(user_input.lower())
+    st.write("") # Spacer
+    if st.button("Hinzufügen", type="primary"):
+        if new_input:
+            st.session_state["history"].append(new_input.lower())
 with col_btn2:
-    if st.button("Suchbaum zurücksetzen"):
-        st.session_state["input_history"] = []
+    st.write("")
+    if st.button("Zurücksetzen"):
+        st.session_state["history"] = []
 
-# Historie der Einengungen anzeigen
-if st.session_state["input_history"]:
-    st.markdown("**Aktive Filter-Kette (Kumulativer Suchpfad):**")
-    for idx, text in enumerate(st.session_state["input_history"], 1):
-        st.caption(f"Schritt {idx}: „{text}“")
+if st.session_state["history"]:
+    st.markdown("**Aktiver Suchpfad (Historie):**")
+    for idx, h in enumerate(st.session_state["history"], 1):
+        st.caption(f"Schritt {idx}: „{h}“")
 
 st.divider()
 
-# --- 2. SEKTION: BAUM-TRAVERSIERUNG & FILTRIERUNG ---
-st.subheader("2. Verbleibender Suchraum im KldB-Baum")
+# --- 2. SEKTION: BAUM-TRAVERSIERUNG & AUSSCHLUSS ---
+st.subheader("2. Dynamischer Suchraum im KldB-Baum (Aktive vs. ausgeschlossene Äste)")
 
-# Aggregierte Tokens aus der gesamten Historie bilden den Filter
 all_tokens = set()
-for text in st.session_state["input_history"]:
+for text in st.session_state["history"]:
     all_tokens.update(text.split())
 
-matching_results = []
+active_branches = {}
+excluded_branches = {}
 
-if not all_tokens:
-    st.info("Der Suchbaum ist vollständig geöffnet. Fügen Sie oben Begriffe hinzu, um den Baum von oben nach unten zu durchwandern und einzuengen.")
-else:
-    # Durchsuche den hierarchischen Baum anhand der kumulativen Tokens
-    for bereich_name, bereich_data in KLDB_TREE.items():
-        # Prüfe Bereichs-Match
-        bereich_match = any(kw in all_tokens for kw in bereich_data["keywords"])
-        
-        for unter_name, unter_data in bereich_data["untergruppen"].items():
-            # Prüfe Untergruppen-Match oder starkes Bereichssignal
-            unter_match = any(kw in all_tokens for kw in unter_data["keywords"]) or bereich_match
-            
-            for code, details in unter_data["gaenge"].items():
-                title_tokens = set(details["titel"].lower().split())
-                token_overlap = len(all_tokens.intersection(title_tokens))
-                
-                # Wenn der Suchpfad passt, bleibt der Knoten im Suchraum
-                if unter_match or token_overlap > 0:
-                    matching_results.append({
-                        "code": code,
-                        "titel": details["titel"],
-                        "niveau": details["niveau"],
-                        "bereich": bereich_name,
-                        "untergruppe": unter_name
-                    })
+for bereich, data in KLDB_TREE.items():
+    # Prüfe, ob harte Ausschlusskriterien greifen
+    excluded_by_rule = False
+    if "exclude_keywords" in data:
+        # Wenn spezifische Wörter vorkommen, die diesem Bereich widersprechen
+        if any(kw in all_tokens for kw in data["exclude_keywords"]) and not any(pos in all_tokens for pos in data.get("match_keywords", set())):
+            excluded_by_rule = True
 
-    if matching_results:
-        st.success(f"Suchraum erfolgreich eingeengt: **{len(matching_results)}** KldB-Berufsgattungen verbleiben im aktiven Zweig:")
-        for r in matching_results:
-            with st.container(border=True):
-                st.markdown(f"**KldB-Code: `{r['code']}` — {r['titel']}**")
-                st.write(f"* **Bereich (1. Stelle):** {r['bereich']}")
-                st.write(f"* **Untergruppe:** {r['untergruppe']}")
-                st.write(f"* **Anforderungsniveau (5. Stelle):** {r['niveau']}")
+    # Wenn noch kein Input da ist, ist alles aktiv
+    if not all_tokens:
+        active_branches[bereich] = data["sub"]
+    elif excluded_by_rule:
+        excluded_branches[bereich] = "Ausgeschlossen durch semantische Kontradiktion (Inkompatibel mit dem Input)."
     else:
-        st.warning("Die kumulierten Eingaben haben den Suchbaum vollständig isoliert (Keine Verzweigung im KldB-Baum passt zu dieser Kombination). Setzen Sie den Baum zurück oder passen Sie die Eingabe an.")
+        # Prüfe, ob es einen positiven Match gibt oder der Ast als neutral/relevant eingestuft wird
+        has_positive = any(kw in all_tokens for kw in data.get("match_keywords", set()))
+        if has_positive or not data.get("match_keywords"):
+            active_branches[bereich] = data["sub"]
+        else:
+            # Schwache Äste werden bei fortgeschrittener Suche ausgefiltert
+            if len(all_tokens) > 1:
+                excluded_branches[bereich] = "Ausgefiltert (Keine positive Relevanz im Suchpfad)."
+            else:
+                active_branches[bereich] = data["sub"]
+
+col_left, col_right = st.columns(2)
+
+with col_left:
+    st.markdown(f"### ✅ Verbleibender Suchraum ({len(active_branches)} Bereiche)")
+    if active_branches:
+        for b_name, subs in active_branches.items():
+            with st.container(border=True):
+                st.markdown(f"**{b_name}**")
+                st.caption(relevante_subs := f"Mögliche Untergruppen: {', '.join(subs)}")
+    else:
+        st.warning("Keine Äste übrig. Bitte Historie anpassen.")
+
+with col_right:
+    st.markdown(f"### ❌ Systematisch ausgeschlossen ({len(excluded_branches)} Bereiche)")
+    if excluded_branches:
+        for b_name, reason in excluded_branches.items():
+            with st.container(border=True):
+                st.markdown(f"~~{b_name}~~")
+                st.caption(f"Grund: {reason}")
+    else:
+        st.info("Bisher wurden noch keine Bereiche ausgeschlossen.")
