@@ -2,7 +2,6 @@ import streamlit as st
 from typing import Set, Dict, List
 
 # --- Offizielle KldB-Datenbank (Auszug für den Demonstrator) ---
-# Jedes Element repräsentiert einen Knoten im KldB-Baum mit Stichwörtern und Erklärungen
 KLDB_DATABASE = {
     "24104": {
         "title": "Softwareentwicklung und Programmierung",
@@ -43,6 +42,7 @@ class Actor:
         self.kldb_code = kldb_code
         self.operators = operators
         self.bio = bio
+        self.description = bio # Kompatibilität für Beschreibungen
 
 # Initialisierung des Markt-Pools in session_state
 if "market_pool" not in st.session_state:
@@ -52,14 +52,14 @@ if "market_pool" not in st.session_state:
             role="Arbeitgeber", 
             kldb_code="24104", 
             operators={"mA": "Autonom & Eigenverantwortlich", "kA": "KI & Technologie"},
-            description="Sucht Köpfe für strukturierte Datenmodelle und formale Systemanalysen."
+            bio="Sucht Köpfe für strukturierte Datenmodelle und formale Systemanalysen."
         ),
         Actor(
             id_str="Digital-Agentur Kreuzberg", 
             role="Arbeitgeber", 
             kldb_code="24104", 
             operators={"mA": "Agil & Interdisziplinär", "kA": "KI & Technologie"},
-            description="Entwickelt Software-Lösungen in flachen Hierarchien."
+            bio="Entwickelt Software-Lösungen in flachen Hierarchien."
         )
     ]
 
@@ -121,7 +121,7 @@ if st.session_state["market_pool"]:
 
 st.divider()
 
-# --- 2. SEKTION: LEBENSLAUF-ASSISTENT (Wie gewünscht) ---
+# --- 2. SEKTION: LEBENSLAUF-ASSISTENT ---
 with st.expander("📝 Lebenslauf-Assistent (Optionale Hilfe)"):
     st.markdown("**Sollen wir Ihnen beim Erstellen eines tabellarischen Lebenslaufes behilflich sein?**")
     st.markdown("Dann benötigen wir noch folgende Angaben:")
@@ -135,19 +135,17 @@ with st.expander("📝 Lebenslauf-Assistent (Optionale Hilfe)"):
 
 st.divider()
 
-# --- 3. SEKTION: STRUKTURLOGISCHES MATCHING (KldB + Operatoren) ---
+# --- 3. SEKTION: STRUKTURLOGISCHES MATCHING ---
 st.header("2. Strukturlogische Passungs-Analyse")
 st.markdown("Das System prüft nun: Gleicher KldB-Zweig $\\land$ Übereinstimmender Arbeitsstil ($\\text{mA}$) $\\land$ Kontext ($\\text{kA}$).")
 
 if st.button("Passende Stellen / Profile im Arbeitsmarkt ermitteln"):
     pool = st.session_state["market_pool"]
-    # Wir nehmen den allerletzten Eintrag als suchenden Nutzer/Bewerber
     active_user = pool[-1]
     
     matches = []
-    for candidate in pool[:-1]: # Suche in den anderen Einträgen
+    for candidate in pool[:-1]:
         if candidate.role != active_user.role:
-            # Kalkül-Bedingungen:
             kldb_match = candidate.kldb_code == active_user.kldb_code
             modus_match = candidate.operators["mA"] == active_user.operators["mA"]
             
