@@ -1,112 +1,112 @@
 import streamlit as st
 from typing import Set, Tuple, List, Dict
 
+st.set_page_config(page_title="Strukturlogisches Arbeitsmarkt-Matching", layout="wide")
+
+st.title("🏛️ Strukturlogischer Arbeitsmarkt-Demonstrator")
+st.markdown("**Überwindung des formalen Matchens durch soziologische Topologie und relationale Logik.**")
+st.markdown("Dieser Prototyp zeigt, wie Passung im Arbeitsmarkt nicht über starre bürokratische Code-Raster erfolgt, sondern über den formalen Kalkül der *Wahlverwandtschaft* (Modus $\\text{mA}$, Kontext $\\text{kA}$, Prädikatsschnittmenge).")
+
 class Actor:
-    def __init__(self, id_str: str, predicates: Set[str], operators: Dict[str, str]):
-        # Axiom A1 Entsprechung: Akteure als individuelle Subjekttermini (D4)
+    def __init__(self, id_str: str, role: str, predicates: Set[str], operators: Dict[str, str], description: str):
         self.id_str = id_str
-        self.predicates = predicates  # Prädikattermini
-        self.operators = operators    # Vektorfelder wie mA (Modus), kA (Kontext)
+        self.role = role  # "Bewerber" oder "Arbeitgeber"
+        self.predicates = predicates
+        self.operators = operators
+        self.description = description
 
-class PluralPairCalculus:
-    def __init__(self, actors: List[Actor]):
-        self.actors = actors
+# Initialisierung des Arbeitsmarkt-Pools in session_state
+if "market_pool" not in st.session_state:
+    st.session_state["market_pool"] = [
+        Actor(
+            id_str="KI-Forschungsinstitut Berlin", 
+            role="Arbeitgeber", 
+            predicates={"ki", "analyse", "formale_logik", "forschung", "struktur", "python"}, 
+            operators={"mA": "Autonom-Akademisch", "kA": "Berlin-KI-Sektor"},
+            description="Sucht Querdenker für strukturierte Datenmodelle und formale Analysen."
+        ),
+        Actor(
+            id_str="Tech-StartUp Berlin Mitte", 
+            role="Arbeitgeber", 
+            predicates={"ki", "software", "agil", "python", "matching", "innovation"}, 
+            operators={"mA": "Agil-Innovativ", "kA": "Berlin-KI-Sektor"},
+            description="Baut smarte Matching-Engines und sucht interdisziplinäre Köpfe."
+        ),
+        Actor(
+            id_str="Dr. phil. (Geisteswissenschaften / Quereinsteiger)", 
+            role="Bewerber", 
+            predicates={"formale_logik", "analyse", "struktur", "forschung", "python"}, 
+            operators={"mA": "Autonom-Akademisch", "kA": "Berlin-KI-Sektor"},
+            description="Promovierter Akademiker mit starkem methodischen Fundament und eigenem Tech-Know-how."
+        )
+    ]
 
-    def is_plural_pair(self, x: Actor, y: Actor) -> bool:
-        """
-        Pluralogische Bedingung für Paar(xx):
-        Exakt zwei distinkte Individuen bilden die Pluralität, ohne ein neues Mengen-Objekt zu reifizieren.
-        """
-        return x.id_str != y.id_str
+# 1. EINGABE IN DER SEITENLEISTE
+st.sidebar.header("1. Profil in den Raum einspeisen")
+user_role = st.sidebar.selectbox("Rolle im Arbeitsmarkt", ["Bewerber (Arbeitnehmer)", "Arbeitgeber (Stelle/Unternehmen)"])
+name_input = st.sidebar.text_input("Name / Institution", value="Muster-Bewerber")
+desc_input = st.sidebar.text_area("Beschreibung / Hintergrund", value="Fokus auf Strukturlogik, Analyse und moderne Tools.")
 
-    def wahlverwandtschaft(self, x: Actor, y: Actor) -> bool:
-        """
-        Operationalisierung der Wahlverwandtschaft W(x, y):
-        Basiert auf Wessel Tafel 8 (Echter Durchschnitt der Prädikate: P1 ∩ P2 ≠ ∅) 
-        kombiniert mit der Passung im modalen Vektorfeld (mA).
-        """
-        # Tafel 8: Echter Durchschnitt der Prädikatsmengen
-        common_predicates = x.predicates.intersection(y.predicates)
-        has_real_intersection = len(common_predicates) > 0
+pred_options = ["ki", "analyse", "formale_logik", "forschung", "struktur", "python", "agil", "matching", "innovation", "projektmanagement"]
+selected_preds = st.sidebar.multiselect("Prädikattermini (Fähigkeiten / Merkmale)", options=pred_options, default=["analyse", "struktur"])
 
-        # Modale Raum-Passung (Operator mA)
-        modality_match = x.operators.get("mA") == y.operators.get("mA")
+modus_input = st.sidebar.selectbox("Modus-Operator (mA - Arbeitsstil/Kultur)", ["Autonom-Akademisch", "Agil-Innovativ", "Hierarchisch-Klassisch"])
+kontext_input = st.sidebar.selectbox("Kontext-Operator (kA - Branchenfeld)", ["Berlin-KI-Sektor", "Öffentlicher Dienst", "Traditioneller Mittelstand"])
 
-        return has_real_intersection and modality_match
-
-    def compute_elective_affinity_pairs(self) -> List[Tuple[Actor, Actor]]:
-        """
-        Ermittelt alle validen pluralen Paare Paar(xx), die über Wahlverwandtschaft verbunden sind.
-        """
-        plural_pairs = []
-        n = len(self.actors)
-        
-        for i in range(n):
-            for j in range(i + 1, n):
-                x = self.actors[i]
-                y = self.actors[j]
-                
-                if self.is_plural_pair(x, y) and self.wahlverwandtschaft(x, y):
-                    plural_pairs.append((x, y))
-                    
-        return plural_pairs
-
-
-# --- STREAMLIT OBERFLÄCHE ---
-st.set_page_config(page_title="Axiomatischer Kalkül: Wahlverwandtschaften", layout="centered")
-
-st.title("⚙️ Axiomatisches Analyse-Labor: Pluralogische Paarbildung")
-st.markdown("Echte Profile treffen auf den formalen Kalkül (Wessel Tafel 8 & modale Operatoren).")
-
-if "actor_pool" not in st.session_state:
-    st.session_state["actor_pool"] = []
-
-# 1. EINGABE FORMULAR
-st.subheader("1. Akteur in den Raum einspeisen")
-with st.form("profile_form", clear_on_submit=True):
-    name = st.text_input("Name / Alias der Person")
-    preds_input = st.text_input("Prädikattermini (kommagetrennt, z.B. rot, dynamisch, rational)")
-    modus = st.selectbox("Modus-Operator (mA)", ["Modus_Alpha", "Modus_Beta", "Modus_Gamma"])
-    
-    submitted = st.form_submit_button("Akteur registrieren")
-    
-    if submitted and name and preds_input:
-        preds = set(p.strip().lower() for p in preds_input.split(",") if p.strip())
-        ops = {"mA": modus, "kA": "Kontext_Echt"}
-        
-        new_actor = Actor(id_str=name, predicates=preds, operators=ops)
-        st.session_state["actor_pool"].append(new_actor)
-        st.success(f"Akteur '{name}' erfolgreich mit Prädikaten {preds} angelegt.")
+if st.sidebar.button("Akteur registrieren"):
+    role_val = "Bewerber" if "Bewerber" in user_role else "Arbeitgeber"
+    new_actor = Actor(
+        id_str=name_input,
+        role=role_val,
+        predicates=set(selected_preds),
+        operators={"mA": modus_input, "kA": kontext_input},
+        description=desc_input
+    )
+    st.session_state["market_pool"].append(new_actor)
+    st.success(f"'{name_input}' erfolgreich im System registriert!")
 
 st.divider()
 
 # 2. BESTANDS-ANZEIGE
-st.subheader("2. Aktueller Akteurs-Bestand im Raum")
-pool = st.session_state["actor_pool"]
+st.subheader("2. Aktueller Akteurs-Bestand im Arbeitsmarkt-Raum")
+pool = st.session_state["market_pool"]
 
-if pool:
-    for a in pool:
-        st.write(f"- **{a.id_str}** | Prädikate: `{list(a.predicates)}` | Modus: `{a.operators['mA']}`")
-        
-    st.divider()
-    
-    # 3. BERECHNUNG
-    st.subheader("3. Kalkül-Ausführung")
-    if st.button("Wahlverwandtschaften P(xx) berechnen"):
-        calculus = PluralPairCalculus(pool)
-        result_pairs = calculus.compute_elective_affinity_pairs()
-        
-        st.success(f"Erfolgreich ermittelte Wahlverwandtschafts-Paare Paar(xx): {len(result_pairs)}")
-        st.markdown("-" * 40)
-        
-        if result_pairs:
-            for idx, (a1, a2) in enumerate(result_pairs, 1):
-                shared_preds = a1.predicates.intersection(a2.predicates)
-                st.write(f"**Paar {idx}:** `({a1.id_str}, {a2.id_str})`")
-                st.write(f"  -> Modus (mA): `{a1.operators['mA']}`")
-                st.write(f"  -> Gemeinsame Prädikate (Tafel 8 Intersection): `{list(shared_preds)}`")
-                st.markdown("-" * 40)
-        else:
-            st.warning("Keine Paare erfüllen die harten Bedingungen (Schnittmenge nach Tafel 8 UND gleicher Modus mA).")
-else:
-    st.info("Noch keine Akteure im Raum. Lege oben mindestens zwei Profile an.")
+for act in pool:
+    with st.expander(f"[{act.role}] {act.id_str} | Modus: `{act.operators['mA']}` | Kontext: `{act.operators['kA']}`"):
+        st.write(f"**Beschreibung:** {act.description}")
+        st.caption(f"Prädikattermini: {list(act.predicates)}")
+
+st.divider()
+
+# 3. BERECHNUNG DES MATCHINGS
+st.subheader("3. Strukturlogische Passungs-Analyse P(xx)")
+st.markdown("Ausführung nach dem relationalen Kern: $\\text{mA}(A_1) \\sim \\text{mA}(A_2) \\land \\text{kA}(A_1) = \\text{kA}(A_2) \\land (P_1 \\cap P_2 \\neq \\emptyset) \\implies P(xx)$")
+
+if st.button("Arbeitsmarkt-Kalkül ausführen"):
+    matches = []
+    n = len(pool)
+    for i in range(n):
+        for j in range(i + 1, n):
+            x = pool[i]
+            y = pool[j]
+            
+            # Matching greift zwischen unterschiedlichen Rollen (Bewerber <-> Arbeitgeber)
+            if x.role != y.role:
+                modality_match = x.operators["mA"] == y.operators["mA"]
+                context_match = x.operators["kA"] == y.operators["kA"]
+                common_preds = x.predicates.intersection(y.predicates)
+                has_intersection = len(common_preds) > 0
+                
+                if modality_match and context_match and has_intersection:
+                    matches.append((x, y, common_preds))
+
+    if matches:
+        st.success(f"{len(matches)} valide Passungen $P(xx)$ im Arbeitsmarkt-Raum ermittelt:")
+        for idx, (a1, a2, shared) in enumerate(matches, 1):
+            st.markdown(f"**Match {idx}:** `{a1.id_str}` ⟷ `{a2.id_str}`")
+            st.write(f"* Übereinstimmender Modus ($\\text{mA}$): `{a1.operators['mA']}`")
+            st.write(f"* Übereinstimmender Kontext ($\\text{kA}$): `{a1.operators['kA']}`")
+            st.caption(f"* Inhaltliche Prädikatschnittmenge ($P_1 \\cap P_2$): {list(shared)}")
+            st.markdown("---")
+    else:
+        st.warning("Keine validen Paare gefunden. Die Modus-Passung, der Kontext oder die Prädikate weichen voneinander ab. Stellen Sie sicher, dass Arbeitgeber und Bewerber im selben Feld (z.B. Berlin-KI-Sektor) agieren und gemeinsame Merkmale teilen.")
