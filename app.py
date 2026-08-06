@@ -1,140 +1,121 @@
 import streamlit as st
-from typing import Dict
+from typing import Dict, List, Set
 
-# --- Amtliche KldB-Datenbank mit Keywords für den Mapper ---
-KLDB_DATABASE = {
-    "24104": {
-        "title": "Softwareentwicklung und Programmierung",
-        "bereich": "4 - Naturwissenschaft, Geografie und Informatik",
-        "niveau": "Niveau 4 (Experte / Hochschulabschluss)",
-        "keywords": {"ki", "software", "python", "programmieren", "code", "daten", "logik", "analyse", "algorithmus", "forschung"}
+st.set_page_config(page_title="Iterativer KldB-Suchbaum", layout="wide")
+
+st.title("🌲 Iterativer KldB-Suchbaum & Einengungs-Engine")
+st.markdown("Jede neue Eingabe wirkt als logischer Operator, der den Suchraum innerhalb der hierarchischen Klassifikation der Berufe (KldB) schrittweise verengt.")
+
+# Hierarchische KldB-Struktur (Beispiel-Baum mit Verzweigungen)
+KLDB_TREE = {
+    "Bereich 2: Unternehmerische Führung, IT, Naturwissenschaften": {
+        "keywords": {"it", "computer", "daten", "software", "forschung", "wissenschaft", "logik", "analyse", "ki"},
+        "untergruppen": {
+            "241: Informatik und Software": {
+                "keywords": {"software", "code", "programmieren", "ki", "python", "algorithmus", "entwicklung"},
+                "gaenge": {
+                    "24104": {"titel": "Softwareentwicklung & KI-Programmierung", "niveau": "Niveau 4 (Experte)"},
+                    "24102": {"titel": "IT-Systemanalyse & Datenbanken", "niveau": "Niveau 4 (Experte)"}
+                }
+            },
+            "251: Wissenschaft & Forschung": {
+                "keywords": {"forschung", "theorie", "universität", "analyse", "struktur", "akademisch"},
+                "gaenge": {
+                    "25192": {"titel": "Wissenschaftliche Forschung und Lehre", "niveau": "Niveau 4 (Promotion)"}
+                }
+            }
+        }
     },
-    "71102": {
-        "title": "Gartenbau und Landschaftsgestaltung",
-        "bereich": "7 - Land-, Forst- und Tierwirtschaft sowie Gartenbau",
-        "niveau": "Niveau 2-3 (Fachkraft / Spezialist)",
-        "keywords": {"natur", "pflanzen", "draußen", "garten", "handwerk", "erde", "grün"}
-    },
-    "81403": {
-        "title": "Sozialarbeit und Sozialpädagogik",
-        "bereich": "8 - Gesundheit, Soziales, Lehre und Erziehung",
-        "niveau": "Niveau 4 (Experte / Hochschulabschluss)",
-        "keywords": {"menschen", "helfen", "sozial", "beratung", "kommunikation", "verantwortung", "jugend"}
-    },
-    "25192": {
-        "title": "Wissenschaftliche Forschung und Hochschullehre",
-        "bereich": "2 - Unternehmensführung, Organisation, Recht",
-        "niveau": "Niveau 4 (Experte / Promotion / Wissenschaft)",
-        "keywords": {"wissenschaft", "theorie", "universität", "studium", "struktur", "konzept", "akademisch"}
+    "Bereich 7: Land-, Forst-, Tierwirtschaft und Gartenbau": {
+        "keywords": {"natur", "tiere", "garten", "pflanzen", "draußen", "reisen", "umwelt"},
+        "untergruppen": {
+            "711: Gartenbau": {
+                "keywords": {"garten", "pflanzen", "erde", "grün", "landschaft"},
+                "gaenge": {
+                    "71102": {"titel": "Gartenbau und Landschaftsgestaltung", "niveau": "Niveau 2-3 (Fachkraft)"}
+                }
+            },
+            "731: Tierhaltung und Pflege": {
+                "keywords": {"tier", "tiere", "hund", "katze", "hof", "pflege"},
+                "gaenge": {
+                    "81202": {"titel": "Tierpflege und Natur-Umweltschutz", "niveau": "Niveau 2-3 (Fachkraft)"}
+                }
+            }
+        }
     }
 }
 
-# --- Arbeitgeber-Pool ---
-EMPLOYER_POOL = [
-    {
-        "name": "KI-Forschungsinstitut Berlin", 
-        "kldb": "24104", 
-        "mA": "Autonom & Eigenverantwortlich", 
-        "kA": "KI & Technologie",
-        "description": "Sucht Köpfe für strukturierte Datenmodelle und formale Systemanalysen."
-    },
-    {
-        "name": "Digital-StartUp Mitte", 
-        "kldb": "24104", 
-        "mA": "Agil & Interdisziplinär", 
-        "kA": "KI & Technologie",
-        "description": "Entwickelt Software-Lösungen in flachen Hierarchien."
-    },
-    {
-        "name": "Stadtgarten GmbH", 
-        "kldb": "71102", 
-        "mA": "Strukturiert & Klassisch", 
-        "kA": "Natur & Umwelt",
-        "description": "Betreut städtische Parkanlagen und ökologische Projekte."
-    }
-]
+# Initialisierung der kumulativen Eingabe-Historie im Session State
+if "input_history" not in st.session_state:
+    st.session_state["input_history"] = []
 
-st.set_page_config(page_title="Arbeitsmarkt-Lotse", layout="centered")
+# --- 1. SEKTION: PROGRESSIVE EINGABE-KETTE ---
+st.subheader("1. Progressive Eingabe zur Baumnavigation")
+user_input = st.text_input(
+    "Geben Sie Merkmale, Interessen oder Aussagen ein (jeder neue Input engt den Suchbaum weiter ein):", 
+    placeholder="z.B. Ich interessiere mich für IT, danach: und programmiere in Python"
+)
 
-st.title("🤝 Arbeitsmarkt-Lotse")
-st.markdown("Ein intuitiver Demonstrator: Freitext-Traits treffen auf den amtlichen **KldB-Baum** und Kultur-Operatoren.")
+col_btn1, col_btn2 = st.columns([1, 4])
+with col_btn1:
+    if st.button("Input hinzufügen", type="primary"):
+        if user_input:
+            st.session_state["input_history"].append(user_input.lower())
+with col_btn2:
+    if st.button("Suchbaum zurücksetzen"):
+        st.session_state["input_history"] = []
 
-# Tabs für eine aufgeräumte, geführte Benutzerführung
-tab1, tab2, tab3 = st.tabs(["1. Über mich & Profil", "2. Passende Stellen", "3. Lebenslauf-Hilfe"])
+# Historie der Einengungen anzeigen
+if st.session_state["input_history"]:
+    st.markdown("**Aktive Filter-Kette (Kumulativer Suchpfad):**")
+    for idx, text in enumerate(st.session_state["input_history"], 1):
+        st.caption(f"Schritt {idx}: „{text}“")
 
-# --- TAB 1: EINGABE & AUTOMATISCHER KLDB-MAPPER ---
-with tab1:
-    st.subheader("Erzählen Sie uns von Ihrer Perspektive")
-    story = st.text_area(
-        "Schreiben Sie frei über Ihre Stärken, Interessen oder Ziele (z.B. 'Ich liebe formale Logik, arbeite autonom und mache etwas mit KI und Daten'):", 
-        height=130,
-        value="Ich liebe formale Logik, arbeite am liebsten autonom und beschäftige mich intensiv mit KI und Datenanalyse."
-    )
-    
-    col1, col2 = st.columns(2)
-    modus = col1.selectbox("Arbeitsstil / Kultur (Operator mA)", ["Autonom & Eigenverantwortlich", "Agil & Interdisziplinär", "Strukturiert & Klassisch"])
-    kontext = col2.selectbox("Themenfeld (Operator kA)", ["KI & Technologie", "Öffentlicher Sektor", "Wissenschaft & Bildung", "Natur & Umwelt"])
+st.divider()
 
-    if st.button("Profil analysieren & KldB-Code bestimmen", type="primary"):
-        # Automatisierter Text-zu-KldB-Mapper durchsucht den Baum nach Keyword-Treffern
-        bio_lower = story.lower()
-        best_match_code = "24104" # Standard-Fallback
-        max_hits = 0
+# --- 2. SEKTION: BAUM-TRAVERSIERUNG & FILTRIERUNG ---
+st.subheader("2. Verbleibender Suchraum im KldB-Baum")
+
+# Aggregierte Tokens aus der gesamten Historie bilden den Filter
+all_tokens = set()
+for text in st.session_state["input_history"]:
+    all_tokens.update(text.split())
+
+matching_results = []
+
+if not all_tokens:
+    st.info("Der Suchbaum ist vollständig geöffnet. Fügen Sie oben Begriffe hinzu, um den Baum von oben nach unten zu durchwandern und einzuengen.")
+else:
+    # Durchsuche den hierarchischen Baum anhand der kumulativen Tokens
+    for bereich_name, bereich_data in KLDB_TREE.items():
+        # Prüfe Bereichs-Match
+        bereich_match = any(kw in all_tokens for kw in bereich_data["keywords"])
         
-        for code, data in KLDB_DATABASE.items():
-            hits = sum(1 for kw in data["keywords"] if kw in bio_lower)
-            if hits > max_hits:
-                max_hits = hits
-                best_match_code = code
+        for unter_name, unter_data in bereich_data["untergruppen"].items():
+            # Prüfe Untergruppen-Match oder starkes Bereichssignal
+            unter_match = any(kw in all_tokens for kw in unter_data["keywords"]) or bereich_match
+            
+            for code, details in unter_data["gaenge"].items():
+                title_tokens = set(details["titel"].lower().split())
+                token_overlap = len(all_tokens.intersection(title_tokens))
+                
+                # Wenn der Suchpfad passt, bleibt der Knoten im Suchraum
+                if unter_match or token_overlap > 0:
+                    matching_results.append({
+                        "code": code,
+                        "titel": details["titel"],
+                        "niveau": details["niveau"],
+                        "bereich": bereich_name,
+                        "untergruppe": unter_name
+                    })
 
-        # Daten im Session State sichern
-        st.session_state["story"] = story
-        st.session_state["modus"] = modus
-        st.session_state["kontext"] = kontext
-        st.session_state["detected_kldb"] = best_match_code
-        
-        info = KLDB_DATABASE[best_match_code]
-        st.success(f"Erfolgreich gemappt! Amtlicher KldB-Code: **{best_match_code}** ({info['title']})")
-
-# --- TAB 2: PASSUNGS-ANALYSE ---
-with tab2:
-    st.subheader("Strukturlogische Passungs-Analyse")
-    
-    if "detected_kldb" not in st.session_state:
-        st.info("💡 Bitte analysieren Sie zuerst Ihr Profil im Tab '1. Über mich & Profil'.")
+    if matching_results:
+        st.success(f"Suchraum erfolgreich eingeengt: **{len(matching_results)}** KldB-Berufsgattungen verbleiben im aktiven Zweig:")
+        for r in matching_results:
+            with st.container(border=True):
+                st.markdown(f"**KldB-Code: `{r['code']}` — {r['titel']}**")
+                st.write(f"* **Bereich (1. Stelle):** {r['bereich']}")
+                st.write(f"* **Untergruppe:** {r['untergruppe']}")
+                st.write(f"* **Anforderungsniveau (5. Stelle):** {r['niveau']}")
     else:
-        code = st.session_state["detected_kldb"]
-        info = KLDB_DATABASE[code]
-        active_modus = st.session_state["modus"]
-        
-        st.markdown(f"**Ihr aktuelles Profil:**")
-        st.write(f"- Erkanntes KldB-Feld: `{code}` — *{info['title']}* ({info['niveau']})")
-        st.write(f"- Arbeitsstil (mA): `{active_modus}`")
-        st.divider()
-        
-        # Matching-Logik (KldB-Zweig stimmt überein UND Modus ma stimmt überein)
-        matches = [e for e in EMPLOYER_POOL if e["kldb"] == code and e["mA"] == active_modus]
-        
-        if matches:
-            st.success(f"Es wurden {len(matches)} passfähige Stellen im Raum entdeckt:")
-            for m in matches:
-                with st.container(border=True):
-                    st.markdown(f"**{m['name']}**")
-                    st.write(f"* **Berufsfeld:** KldB `{m['kldb']}` ({info['title']})")
-                    st.write(f"* **Kultur-Passung (mA):** `{m['mA']}`")
-                    st.write(f"* **Beschreibung:** {m['description']}")
-        else:
-            st.warning("Keine exakte Passung gefunden. (Der KldB-Code und der Arbeitsstil `mA` müssen übereinstimmen). Probieren Sie im Tab 1 einen anderen Arbeitsstil oder passen Sie den Text an.")
-
-# --- TAB 3: LEBENSLAUF-ASSISTENT ---
-with tab3:
-    st.subheader("Lebenslauf-Assistent")
-    st.markdown("**Sollen wir Ihnen beim Erstellen eines tabellarischen Lebenslaufes behilflich sein?**")
-    col_a, col_b = st.columns(2)
-    with col_a:
-        job = col_a.text_input("Zuletzt ausgeübte Station")
-    with col_b:
-        skills = col_b.text_input("Kernkompetenzen / Studienschwerpunkt")
-        
-    if st.button("Tabellarischen Entwurf generieren"):
-        st.success("Struktur erfolgreich auf Basis Ihres KldB-Profils und Ihrer Eingaben formatiert!")
+        st.warning("Die kumulierten Eingaben haben den Suchbaum vollständig isoliert (Keine Verzweigung im KldB-Baum passt zu dieser Kombination). Setzen Sie den Baum zurück oder passen Sie die Eingabe an.")
