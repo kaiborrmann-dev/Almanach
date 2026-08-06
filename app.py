@@ -1,56 +1,48 @@
 import streamlit as st
+import plotly.express as px
+import pandas as pd
 import re
 
-st.set_page_config(page_title="Topologische KldB-Präzisierung", layout="wide")
+st.set_page_config(page_title="Topologischer KldB-Cluster-Raum", layout="wide")
 
-st.title("🎯 Topologischer KldB-Präzisions-Raum")
-st.markdown("Jeder neue Input akkumuliert sich im Phasenraum. Die App berechnet fortwährend Ihre Koordinaten und zoomt von der **Makro-Ebene (Bereiche)** iterativ auf die exakte **Mikro-Ebene (5-stellige KldB-Gattung)** ein.")
+st.title("🌐 KldB-Raum als topologische Cluster-Landschaft")
+st.markdown("Ihre kumulierten Eingaben bestimmen Ihre Koordinaten im Raum. Der Graph zeigt in Echtzeit, welchem KldB-Cluster Sie sich topologisch annähern.")
 
-# Hierarchischer, multidimensionaler Vektor-Raum der KldB
-TOPOLOGICAL_KLDB_TREE = {
-    "Bereich 2: IT, Software & Geoinformatik": {
-        "features": {"it", "software", "daten", "code", "logik", "analyse", "algorithmus", "rechner", "programmieren", "system", "ki", "forschung", "geografie", "karte"},
-        "subgroups": {
-            "Hauptgruppe 24: Informatik & Software": {
-                "features": {"software", "code", "programmieren", "ki", "python", "algorithmus", "entwicklung", "daten"},
-                "gattungen": {
-                    "24104": {"titel": "Softwareentwicklung & KI-Programmierung", "niveau": "Experte (Niveau 4)"},
-                    "24102": {"titel": "IT-Systemanalyse & Datenbanken", "niveau": "Experte (Niveau 4)"}
-                }
-            },
-            "Hauptgruppe 25: Naturwissenschaften & Forschung": {
-                "features": {"forschung", "theorie", "wissenschaft", "analyse", "struktur", "akademisch", "logik"},
-                "gattungen": {
-                    "25192": {"titel": "Wissenschaftliche Forschung und Lehre", "niveau": "Experte / Promotion (Niveau 4)"}
-                }
-            }
-        }
+# Definierte KldB-Cluster mit festen 2D-Koordinaten im semantischen Raum und Merkmalen
+CLUSTER_DATA = [
+    {
+        "cluster": "IT, Software & Geoinformatik",
+        "code": "Bereich 2 (24xxx/25xxx)",
+        "x": 2.0, "y": 8.0,
+        "features": {"it", "software", "daten", "code", "logik", "analyse", "algorithmus", "ki", "geografie", "karte", "programmieren"}
     },
-    "Bereich 3: Geisteswissenschaften, Kultur & Archiv": {
-        "features": {"historisch", "geschichte", "archiv", "kultur", "bibliothek", "text", "lesen", "schreiben", "quellen", "sammlung", "karte", "landkarte"},
-        "subgroups": {
-            "Hauptgruppe 34: Archiv, Bibliothek & Museum": {
-                "features": {"archiv", "bibliothek", "sammlung", "historisch", "quellen", "karte", "geschichte", "landkarte"},
-                "gattungen": {
-                    "34302": {"titel": "Archivwesen und historische Dokumentation", "niveau": "Experte (Niveau 4)"}
-                }
-            }
-        }
+    {
+        "cluster": "Kultur, Medien & Archiv",
+        "code": "Bereich 3 (31xxx/34xxx)",
+        "x": 8.0, "y": 7.0,
+        "features": {"historisch", "geschichte", "archiv", "kultur", "bibliothek", "text", "quellen", "sammlung", "karte", "landkarte"}
     },
-    "Bereich 7: Landwirtschaft, Natur & Vermessung": {
-        "features": {"natur", "tier", "tiere", "garten", "pflanzen", "erde", "grün", "wald", "umwelt", "geografie", "karte", "landkarte", "vermessung"},
-        "subgroups": {
-            "Hauptgruppe 71: Geoinformatik & Kartografie": {
-                "features": {"karte", "landkarte", "geografie", "vermessung", "kartografie", "spatial", "raum"},
-                "gattungen": {
-                    "71392": {"titel": "Kartografie und Geoinformationswesen", "niveau": "Spezialist / Experte (Niveau 3-4)"}
-                }
-            }
-        }
+    {
+        "cluster": "Landwirtschaft, Natur & Vermessung",
+        "code": "Bereich 7 (71xxx)",
+        "x": 3.0, "y": 2.0,
+        "features": {"natur", "tier", "tiere", "garten", "pflanzen", "erde", "grün", "wald", "umwelt", "vermessung"}
+    },
+    {
+        "cluster": "Gesundheit, Soziales & Pädagogik",
+        "code": "Bereich 8 (81xxx)",
+        "x": 8.0, "y": 2.0,
+        "features": {"gesundheit", "krank", "pflege", "sozial", "helfen", "menschen", "kinder", "alt", "beratung", "medizin"}
+    },
+    {
+        "cluster": "Wirtschaft, Verwaltung & Recht",
+        "code": "Bereich 6 (61xxx)",
+        "x": 5.0, "y": 5.0,
+        "features": {"verwaltung", "amt", "recht", "wirtschaft", "organisation", "büro", "dokument"}
     }
-}
+]
 
-# Session State für die kumulative Historie
+# Session State initialisieren
 if "history" not in st.session_state:
     st.session_state.history = []
 if "input_box" not in st.session_state:
@@ -62,90 +54,101 @@ def add_input():
         st.session_state.history.append(text)
         st.session_state.input_box = ""
 
-# --- 1. SEKTION: KUMULATIVER INPUT ---
-st.subheader("1. Kumulativer Phasenraum des Bewerbers")
-col1, col2 = st.columns([3, 1])
-with col1:
-    st.text_input("Geben Sie Facetten, Vorlieben oder Aussagen nacheinander ein:", 
-                  key="input_box", 
-                  on_change=add_input, 
-                  placeholder="z.B. Ich sammle historische Landkarten...")
-with col2:
-    st.write("")
-    if st.button("Phasenraum zurücksetzen"):
+# --- 1. EINGABE-BEREICH ---
+col_left, col_right = st.columns([1, 2])
+
+with col_left:
+    st.subheader("1. Kumulativer Input")
+    st.text_input("Geben Sie Facetten ein:", key="input_box", on_change=add_input, placeholder="z.B. historische Landkarten...")
+    
+    if st.button("Eingabe hinzufügen", type="primary"):
+        add_input()
+    
+    if st.button("Raum zurücksetzen"):
         st.session_state.history = []
         st.session_state.input_box = ""
 
-if st.session_state.history:
-    st.markdown("**Akkumulierter Vektor (Historie der Aussagen):**")
-    for i, h in enumerate(st.session_state.history, 1):
-        st.caption(f"Eingabe [{i}]: „{h}“")
+    if st.session_state.history:
+        st.markdown("**Akkumulierter Vektor:**")
+        for i, h in enumerate(st.session_state.history, 1):
+            st.caption(f"[{i}] „{h}“")
 
+# --- 2. BERECHNUNG DER KOORDINATEN & PLOTLY CLUSTER MAP ---
+with col_right:
+    st.subheader("2. Topologischer Cluster-Raum")
+    
+    # Gesamten Korpus auswerten
+    full_corpus = " ".join(st.session_state.history).lower()
+    user_tokens = set(re.findall(r'\b\w+\b', full_corpus))
+    
+    # Dynamische Berechnung des Nutzer-Schwerpunkts (Gravitationszentrum)
+    # Startpunkt ist die Mitte (5.0, 5.0)
+    u_x, u_y = 5.0, 5.0
+    total_weight = 1.0
+    
+    cluster_scores = []
+    for c in CLUSTER_DATA:
+        matches = user_tokens.intersection(c["features"])
+        score = len(matches)
+        cluster_scores.append({"cluster": c["cluster"], "score": score})
+        
+        if score > 0:
+            # Gravitations-Verschiebung in Richtung des Clusters
+            u_x += (c["x"] - 5.0) * (score * 0.4)
+            u_y += (c["y"] - 5.0) * (score * 0.4)
+            total_weight += score
+
+    # DataFrame für Plotly aufbauen
+    df_clusters = pd.DataFrame(CLUSTER_DATA)
+    df_clusters["Typ"] = "KldB-Cluster"
+    df_clusters["Größe"] = 25
+    
+    # Nutzer-Punkt hinzufügen
+    df_user = pd.DataFrame([{
+        "cluster": "📍 Ihr Standort (Aktuelles Profil)",
+        "code": "Dynamischer Vektor",
+        "x": u_x,
+        "y": u_y,
+        "Typ": "Ihr Profil",
+        "Größe": 40
+    }])
+    
+    df_plot = pd.concat([df_clusters, df_user], ignore_index=True)
+    
+    # Scatter-Plot erstellen
+    fig = px.scatter(
+        df_plot, 
+        x="x", 
+        y="y", 
+        color="Typ", 
+        size="Größe",
+        text="cluster",
+        hover_data=["code"],
+        color_discrete_map={"KldB-Cluster": "#1f77b4", "Ihr Profil": "#ff7f0e"}
+    )
+    
+    fig.update_traces(textposition='top center')
+    fig.update_layout(
+        xaxis=dict(range=[0, 10], showgrid=True, zeroline=False),
+        yaxis=dict(range=[0, 10], showgrid=True, zeroline=False),
+        height=450,
+        margin=dict(l=20, r=20, t=20, b=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- 3. DETAIL-ANALYSE DER NÄHE ---
 st.divider()
-
-# --- 2. SEKTION: TOPOLOGISCHE PRÄZISIERUNG (ZOOM-IN) ---
-st.subheader("2. Topologische Präzisierung (Konvergenz im KldB-Raum)")
-
-# Gesamten Korpus aus allen bisherigen Eingaben zusammenführen
-full_corpus = " ".join(st.session_state.history).lower()
-user_tokens = set(re.findall(r'\b\w+\b', full_corpus))
+st.subheader("3. Cluster-Resonanz & topologische Distanz")
 
 if not user_tokens:
-    st.info("Der Phasenraum ist leer. Fügen Sie oben Aussagen hinzu, um die topologische Gravitation und Präzisierung zu starten.")
+    st.info("Der Raum befindet sich im neutralen Zentrum (5,5). Fügen Sie Aussagen hinzu, um die Gravitation zu aktivieren.")
 else:
-    col_left, col_right = st.columns(2)
-
-    with col_left:
-        st.markdown("### 🔭 Makro-Ebene (Bereiche im Gravitationsfeld)")
-        bereich_scores = {}
-        for b_name, b_data in TOPOLOGICAL_KLDB_TREE.items():
-            matches = user_tokens.intersection(b_data["features"])
-            score = len(matches)
-            bereich_scores[b_name] = score
-            
-            # Visuelle Darstellung der Nähe
-            intensity = "🟢 Hohe Resonanz" if score > 0 else "⚪ Distant"
-            st.markdown(f"**{b_name}** — Score: `{score}` ({intensity})")
-            if matches:
-                st.caption(f"Aktive Koordinaten-Treffer: {', '.join(matches)}")
-
-    with col_right:
-        st.markdown("### 🔬 Mikro-Ebene (Präzisierte 5-stellige KldB-Gattungen)")
-        
-        # Berechne exakte Treffer auf Gattungsebene basierend auf kumulierten Vektoren
-        gattung_results = []
-        for b_name, b_data in TOPOLOGICAL_KLDB_TREE.items():
-            for sg_name, sg_data in b_data["subgroups"].items():
-                for code, g_info in sg_data["gattungen"].items():
-                    # Kombinierte Features der Untergruppe und des Bereichs
-                    target_features = sg_data["features"].union(b_data["features"])
-                    overlap = len(user_tokens.intersection(target_features))
-                    
-                    # Titel-Matching als zusätzlicher Präzisionsfaktor
-                    title_words = set(re.findall(r'\b\w+\b', g_info["titel"].lower()))
-                    title_match = len(user_tokens.intersection(title_words))
-                    
-                    total_precision = overlap + (title_match * 3)
-                    
-                    if total_precision > 0:
-                        gattung_results.append({
-                            "code": code,
-                            "titel": g_info["titel"],
-                            "niveau": g_info["niveau"],
-                            "bereich": b_name,
-                            "precision": total_precision
-                        })
-
-        # Nach Präzisionsgrad sortieren (Zoom-In)
-        gattung_results.sort(key=lambda x: x["precision"], reverse=True)
-
-        if gattung_results:
-            st.markdown("Das System hat folgende **topologische Konvergenzpunkte** im KldB-Baum errechnet:")
-            for res in gattung_results[:3]:
-                with st.container(border=True):
-                    st.markdown(f"**Präziser Punkt: KldB `{res['code']}`**")
-                    st.write(f"*{res['titel']}*")
-                    st.caption(f"Niveau: {res['niveau']} | {res['bereich']}")
-                    st.progress(min(res['precision'] / 5.0, 1.0), text=f"Topologischer Präzisions-Faktor: {res['precision']}")
-        else:
-            st.warning("Die kumulierten Eingaben umkreisen bisher den Raum. Fügen Sie spezifischere Begriffe hinzu (z.B. 'Karte', 'Archiv', 'Software'), um den Punkt zu schärfen.")
+    # Sortiere nach Treffern
+    cluster_scores.sort(key=lambda x: x["score"], reverse=True)
+    
+    cols = st.columns(len(cluster_scores))
+    for idx, cs in enumerate(cluster_scores):
+        with cols[idx]:
+            st.metric(label=cs["cluster"], value=f"Treffer: {cs['score']}")
