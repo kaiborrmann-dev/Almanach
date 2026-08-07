@@ -76,7 +76,11 @@ if st.sidebar.button("Matching & Topologie berechnen", type="primary"):
         with col1:
             st.subheader("Logische Extraktion (Parser)")
             st.info(f"**Modus (mA):** {profile['mA']}")
-            st.success(f"**Tatsachen / Positiv (↓A):** {', '.join(profile['↓A']) if profile['↓A']}none")
+            
+            # Korrigierte Ausgabe für Positiv-Bedingungen
+            pos_text = ", ".join(profile['↓A']) if profile['↓A'] else "Keine"
+            st.success(f"**Tatsachen / Positiv (↓A):** {pos_text}")
+            
             if profile['↑A']:
                 st.error(f"**Dealbreaker / Ausschluss (↑A):** {', '.join(profile['↑A'])}")
             else:
