@@ -1,141 +1,133 @@
 import streamlit as st
-import re
-import math
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="Topologischer KldB-Raum", layout="wide")
+# Seitenkonfiguration
+st.set_page_config(
+    page_title="KldB Logik-Parser & Topologie",
+    page_icon="⚖️",
+    layout="wide"
+)
 
-st.title("🌐 Topologischer KldB-Cluster-Raum")
-st.markdown("Ihre kumulierten Eingaben spannen einen multidimensionalen Vektor auf. Das System berechnet in Echtzeit die topologische Gravitation zu den KldB-Hauptclustern.")
+st.title("Bundesagentur für Arbeit – Logik-Parser & Topologie-Engine")
+st.markdown("Deterministisches Matching von Bewerberprofilen im hierarchischen KldB-Raum (Klassifikation der Berufe 2010).")
 
-# Definierte KldB-Cluster mit Merkmalen und Koordinaten im semantischen Raum
-CLUSTER_DATA = [
-    {
-        "id": "it",
-        "cluster": "IT, Software & Geoinformatik",
-        "code": "Bereich 2 (24xxx/25xxx)",
-        "pos_x": 2.0, "pos_y": 8.0,
-        "features": {"it", "software", "daten", "code", "logik", "analyse", "algorithmus", "ki", "geografie", "karte", "programmieren", "system"}
-    },
-    {
-        "id": "kultur",
-        "cluster": "Kultur, Medien & Archiv",
-        "code": "Bereich 3 (31xxx/34xxx)",
-        "pos_x": 8.0, "pos_y": 7.0,
-        "features": {"historisch", "geschichte", "archiv", "kultur", "bibliothek", "text", "quellen", "sammlung", "karte", "landkarte", "lesen", "schreiben"}
-    },
-    {
-        "id": "natur",
-        "cluster": "Landwirtschaft, Natur & Vermessung",
-        "code": "Bereich 7 (71xxx)",
-        "pos_x": 3.0, "pos_y": 2.0,
-        "features": {"natur", "tier", "tiere", "garten", "pflanzen", "erde", "grün", "wald", "umwelt", "vermessung", "draußen"}
-    },
-    {
-        "id": "sozial",
-        "cluster": "Gesundheit, Soziales & Pädagogik",
-        "code": "Bereich 8 (81xxx)",
-        "pos_x": 8.0, "pos_y": 2.0,
-        "features": {"gesundheit", "krank", "pflege", "sozial", "helfen", "menschen", "kinder", "alt", "beratung", "medizin", "lehr"}
-    },
-    {
-        "id": "wirtschaft",
-        "cluster": "Wirtschaft, Verwaltung & Recht",
-        "code": "Bereich 6 (61xxx)",
-        "pos_x": 5.0, "pos_y": 5.0,
-        "features": {"verwaltung", "amt", "recht", "wirtschaft", "organisation", "büro", "dokument", "struktur"}
+# Sidebar für Eingaben
+st.sidebar.header("1. Eingabeparameter")
+applicant_bio = st.sidebar.text_area(
+    "Freitext-Profil des Bewerbers",
+    "Ich habe eine Ausbildung im Bereich Elektrotechnik abgeschlossen, arbeite praxisorientiert und suche eine feste Anstellung in der Betriebstechnik. Wichtig: Absolut keine Nachtschicht."
+)
+target_kldb = st.sidebar.text_input("Ziel-KldB-Schlüssel (5-stellig)", "25132")
+
+# Hintergrund-Parser (Simulation der Logik-Extraktion)
+def parse_bio_to_logic(text):
+    lower = text.lower()
+    positive = []
+    negative = []
+    mode = "Direkteinsatz-Modus"
+
+    if "elektrotechnik" in lower or "elektroniker" in lower:
+        positive.append("Qualifikation_Elektrotechnik")
+    if "betriebstechnik" in lower:
+        positive.append("Ziel_Betriebstechnik")
+    if "praxisorientiert" in lower:
+        positive.append("Praxisorientierte_Arbeitsweise")
+        
+    if "keine nachtschicht" in lower or "nachtschicht" in lower:
+        if "keine nachtschicht" in lower:
+            negative.append("Ausschluss_Schichtarbeit")
+
+    if "quereinstieg" in lower:
+        mode = "Entwicklungs- & Qualifizierungs-Vektor"
+
+    return {
+        "mA": mode,
+        "↓A": positive,
+        "↑A": negative
     }
-]
 
-# Session State initialisieren
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "input_box" not in st.session_state:
-    st.session_state.input_box = ""
-
-def add_input():
-    text = st.session_state.input_box.strip()
-    if text:
-        st.session_state.history.append(text)
-        st.session_state.input_box = ""
-
-# --- 1. SEKTION: INPUT ---
-col_left, col_right = st.columns([1, 2])
-
-with col_left:
-    st.subheader("1. Kumulativer Input")
-    st.text_input("Geben Sie Facetten ein:", key="input_box", on_change=add_input, placeholder="z.B. historische Landkarten...")
-    
-    if st.button("Eingabe hinzufügen", type="primary"):
-        add_input()
-    
-    if st.button("Raum zurücksetzen"):
-        st.session_state.history = []
-        st.session_state.input_box = ""
-
-    if st.session_state.history:
-        st.markdown("**Akkumulierter Vektor (Historie):**")
-        for i, h in enumerate(st.session_state.history, 1):
-            st.caption(f"[{i}] „{h}“")
-
-# --- 2. SEKTION: TOPOLOGISCHE BERECHNUNG & GRAVITATION ---
-with col_right:
-    st.subheader("2. Topologischer Gravitations-Standort")
-    
-    # Korpus auswerten
-    full_corpus = " ".join(st.session_state.history).lower()
-    user_tokens = set(re.findall(r'\b\w+\b', full_corpus))
-    
-    # Berechne den dynamischen Vektor (Schwerpunkt im Raum ausgehend von (5, 5))
-    u_x, u_y = 5.0, 5.0
-    cluster_results = []
-    
-    for c in CLUSTER_DATA:
-        matches = user_tokens.intersection(c["features"])
-        score = len(matches)
-        
-        if score > 0:
-            # Gravitationskraft zieht den Standort zum Cluster-Mittelpunkt
-            u_x += (c["pos_x"] - 5.0) * (score * 0.35)
-            u_y += (c["pos_y"] - 5.0) * (score * 0.35)
-            
-        cluster_results.append({
-            "cluster": c["cluster"],
-            "code": c["code"],
-            "score": score,
-            "matches": list(matches)
-        })
-
-    # Koordinaten im Rahmen [0, 10] halten
-    u_x = max(0.0, min(10.0, u_x))
-    u_y = max(0.0, min(10.0, u_y))
-
-    # Visuelle Koordinaten-Box als Ersatz für Plotly
-    with st.container(border=True):
-        col_m1, col_m2, col_m3 = st.columns(3)
-        col_m1.metric("Topologische X-Koordinate", f"{u_x:.2f}")
-        col_m2.metric("Topologische Y-Koordinate", f"{u_y:.2f}")
-        col_m3.metric("Akkumulierte Tokens", len(user_tokens))
-        
-        if not user_tokens:
-            st.info("Standort im neutralen Zentrum (5.0, 5.0). Fügen Sie links Text hinzu, um den Punkt zu bewegen.")
+# Berechnung der topologischen Distanz im KldB-Baum
+def get_topological_distance(applicant_inferred_code, target_code):
+    match_level = 0
+    for i in range(min(len(applicant_inferred_code), len(target_code))):
+        if applicant_inferred_code[i] == target_code[i]:
+            match_level = i + 1
         else:
-            st.success(f"📍 Ihr aktueller Gravitationspunkt im KldB-Raum wurde errechnet.")
+            break
+    # Distanz: 0 bedeutet identisch auf Ebene 5, max 5
+    return 5 - match_level, match_level
 
-# --- 3. SEKTION: CLUSTER-RESONANZ & NÄHE ---
-st.divider()
-st.subheader("3. Resonanz in den KldB-Hauptclustern")
+if st.sidebar.button("Matching & Topologie berechnen", type="primary"):
+    # Validierung des Zielschlüssels
+    if len(target_kldb) != 5 or not target_kldb.isdigit():
+        st.error("Bitte geben Sie einen gültigen 5-stelligen numerischen KldB-Schlüssel ein (z. B. 25132).")
+    else:
+        # Parsen ausführen
+        profile = parse_bio_to_logic(applicant_bio)
+        
+        # Angenommener passender Basis-Code aus dem Profil für den Distanz-Vergleich (hier simuliert auf Basis der Extraktion)
+        applicant_code = "25132" if "elektrotechnik" in applicant_bio.lower() else "43414"
+        
+        dist, match_lvl = get_topological_distance(applicant_code, target_kldb)
 
-# Nach Score sortieren
-cluster_results.sort(key=lambda x: x["score"], reverse=True)
+        # Layout in Spalten
+        col1, col2 = st.columns(2)
 
-cols = st.columns(len(cluster_results))
-for idx, res in enumerate(cluster_results):
-    with cols[idx]:
-        with st.container(border=True):
-            st.markdown(f"**{res['cluster']}**")
-            st.caption(res["code"])
-            st.metric("Resonanz-Score", res["score"])
-            if res["matches"]:
-                st.write(f"✨ Treffer: `{', '.join(res['matches'])}`")
+        with col1:
+            st.subheader("Logische Extraktion (Parser)")
+            st.info(f"**Modus (mA):** {profile['mA']}")
+            st.success(f"**Tatsachen / Positiv (↓A):** {', '.join(profile['↓A']) if profile['↓A']}none")
+            if profile['↑A']:
+                st.error(f"**Dealbreaker / Ausschluss (↑A):** {', '.join(profile['↑A'])}")
             else:
-                st.caption("Keine direkte Resonanz.")
+                st.write("**Dealbreaker (↑A):** Keine harten Ausschlüsse erkannt.")
+
+        with col2:
+            st.subheader("Topologischer Baum-Abgleich")
+            st.metric("Übereinstimmende KldB-Ebene", f"Ebene {match_lvl} von 5")
+            st.metric("Topologische Distanz (Baum-Metrik)", f"{dist} Schritte")
+            
+            # Kollisionsprüfung
+            collision = "Ausschluss_Schichtarbeit" in profile['↑A'] and target_kldb == "25132"
+            if collision:
+                st.warning("⚠️ **Kollisions-Check:** Match-Verhinderung wegen Schichtdienst-Ausschluss!")
+            else:
+                st.success("✅ **Kollisions-Check:** Keine harten Konflikte festgestellt.")
+
+        st.markdown("---")
+        st.subheader("Visualisierung der topologischen Nähe (Hierarchie-Ebenen)")
+
+        # Erstellung der Visualisierung mit Plotly (Baum-Tiefe)
+        levels = [
+            "1. Berufsabschnitt", 
+            "2. Berufsbereich", 
+            "3. Berufsgruppe", 
+            "4. Berufsfamilie", 
+            "5. Einzelberuf & Niveau"
+        ]
+        
+        # Ermitteln, welche Ebenen übereinstimmen
+        match_flags = [1 if i < match_lvl else 0 for i in range(5)]
+        colors = ['#003366' if flag == 1 else '#cbd5e1' for flag in match_flags]
+        sub_codes = [target_kldb[:i+1] for i in range(5)]
+
+        fig = go.Figure(data=[
+            go.Bar(
+                x=levels,
+                y=[1, 1, 1, 1, 1],
+                marker_color=colors,
+                text=[f"Code: {c}" for c in sub_codes],
+                textposition='auto',
+                hoverinfo='text'
+            )
+        ])
+
+        fig.update_layout(
+            title=f"Hierarchischer Pfad im KldB-Raum für Zielschlüssel {target_kldb}",
+            yaxis=dict(showticklabels=False, range=[0, 1.4]),
+            xaxis=dict(title="Hierarchie-Ebene der Klassifikation"),
+            template="plotly_white",
+            margin=dict(t=40, b=20, l=20, r=20)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
