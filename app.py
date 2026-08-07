@@ -1,5 +1,4 @@
 import streamlit as st
-import plotly.graph_objects as go
 
 # Seitenkonfiguration
 st.set_page_config(
@@ -19,7 +18,7 @@ applicant_bio = st.sidebar.text_area(
 )
 target_kldb = st.sidebar.text_input("Ziel-KldB-Schlüssel (5-stellig)", "25132")
 
-# Hintergrund-Parser (Simulation der Logik-Extraktion)
+# Hintergrund-Parser
 def parse_bio_to_logic(text):
     lower = text.lower()
     positive = []
@@ -46,7 +45,6 @@ def parse_bio_to_logic(text):
         "↑A": negative
     }
 
-# Berechnung der topologischen Distanz im KldB-Baum
 def get_topological_distance(applicant_inferred_code, target_code):
     match_level = 0
     for i in range(min(len(applicant_inferred_code), len(target_code))):
@@ -54,30 +52,21 @@ def get_topological_distance(applicant_inferred_code, target_code):
             match_level = i + 1
         else:
             break
-    # Distanz: 0 bedeutet identisch auf Ebene 5, max 5
     return 5 - match_level, match_level
 
 if st.sidebar.button("Matching & Topologie berechnen", type="primary"):
-    # Validierung des Zielschlüssels
     if len(target_kldb) != 5 or not target_kldb.isdigit():
         st.error("Bitte geben Sie einen gültigen 5-stelligen numerischen KldB-Schlüssel ein (z. B. 25132).")
     else:
-        # Parsen ausführen
         profile = parse_bio_to_logic(applicant_bio)
-        
-        # Angenommener passender Basis-Code aus dem Profil für den Distanz-Vergleich (hier simuliert auf Basis der Extraktion)
         applicant_code = "25132" if "elektrotechnik" in applicant_bio.lower() else "43414"
-        
         dist, match_lvl = get_topological_distance(applicant_code, target_kldb)
 
-        # Layout in Spalten
         col1, col2 = st.columns(2)
 
         with col1:
             st.subheader("Logische Extraktion (Parser)")
             st.info(f"**Modus (mA):** {profile['mA']}")
-            
-            # Korrigierte Ausgabe für Positiv-Bedingungen
             pos_text = ", ".join(profile['↓A']) if profile['↓A'] else "Keine"
             st.success(f"**Tatsachen / Positiv (↓A):** {pos_text}")
             
@@ -89,9 +78,8 @@ if st.sidebar.button("Matching & Topologie berechnen", type="primary"):
         with col2:
             st.subheader("Topologischer Baum-Abgleich")
             st.metric("Übereinstimmende KldB-Ebene", f"Ebene {match_lvl} von 5")
-            st.metric("Topologische Distanz (Baum-Metrik)", f"{dist} Schritte")
+            st.metric("Topologische Distanz", f"{dist} Schritte")
             
-            # Kollisionsprüfung
             collision = "Ausschluss_Schichtarbeit" in profile['↑A'] and target_kldb == "25132"
             if collision:
                 st.warning("⚠️ **Kollisions-Check:** Match-Verhinderung wegen Schichtdienst-Ausschluss!")
@@ -99,39 +87,14 @@ if st.sidebar.button("Matching & Topologie berechnen", type="primary"):
                 st.success("✅ **Kollisions-Check:** Keine harten Konflikte festgestellt.")
 
         st.markdown("---")
-        st.subheader("Visualisierung der topologischen Nähe (Hierarchie-Ebenen)")
+        st.subheader("Visualisierung der topologischen Übereinstimmung")
 
-        # Erstellung der Visualisierung mit Plotly (Baum-Tiefe)
-        levels = [
-            "1. Berufsabschnitt", 
-            "2. Berufsbereich", 
-            "3. Berufsgruppe", 
-            "4. Berufsfamilie", 
-            "5. Einzelberuf & Niveau"
-        ]
+        chart_data = {
+            "Ebene 1 (Abschnitt)": 100 if match_lvl >= 1 else 20,
+            "Ebene 2 (Bereich)": 100 if match_lvl >= 2 else 20,
+            "Ebene 3 (Gruppe)": 100 if match_lvl >= 3 else 20,
+            "Ebene 4 (Familie)": 100 if match_lvl >= 4 else 20,
+            "Ebene 5 (Einzelberuf)": 100 if match_lvl >= 5 else 20,
+        }
         
-        # Ermitteln, welche Ebenen übereinstimmen
-        match_flags = [1 if i < match_lvl else 0 for i in range(5)]
-        colors = ['#003366' if flag == 1 else '#cbd5e1' for flag in match_flags]
-        sub_codes = [target_kldb[:i+1] for i in range(5)]
-
-        fig = go.Figure(data=[
-            go.Bar(
-                x=levels,
-                y=[1, 1, 1, 1, 1],
-                marker_color=colors,
-                text=[f"Code: {c}" for c in sub_codes],
-                textposition='auto',
-                hoverinfo='text'
-            )
-        ])
-
-        fig.update_layout(
-            title=f"Hierarchischer Pfad im KldB-Raum für Zielschlüssel {target_kldb}",
-            yaxis=dict(showticklabels=False, range=[0, 1.4]),
-            xaxis=dict(title="Hierarchie-Ebene der Klassifikation"),
-            template="plotly_white",
-            margin=dict(t=40, b=20, l=20, r=20)
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
+        st.bar_chart(chart_data)
