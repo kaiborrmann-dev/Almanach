@@ -1,100 +1,72 @@
 import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly.express as px
 
-# Seitenkonfiguration
-st.set_page_config(
-    page_title="KldB Logik-Parser & Topologie",
-    page_icon="⚖️",
-    layout="wide"
-)
+st.title("Interaktive Topologische $\varepsilon$-Umgebung ($K_\varepsilon(x)$)")
 
-st.title("Bundesagentur für Arbeit – Logik-Parser & Topologie-Engine")
-st.markdown("Deterministisches Matching von Bewerberprofilen im hierarchischen KldB-Raum (Klassifikation der Berufe 2010).")
+# 1. Interaktiver Slider für Epsilon in der Sidebar
+st.sidebar.header("Topologische Steuerung")
+epsilon = st.sidebar.slider("Radius ε (Aktionsradius der Nachbarschaft)", min_value=0.5, max_value=8.0, value=3.0, step=0.1)
 
-# Sidebar für Eingaben
-st.sidebar.header("1. Eingabeparameter")
-applicant_bio = st.sidebar.text_area(
-    "Freitext-Profil des Bewerbers",
-    "Ich habe eine Ausbildung im Bereich Elektrotechnik abgeschlossen, arbeite praxisorientiert und suche eine feste Anstellung in der Betriebstechnik. Wichtig: Absolut keine Nachtschicht."
-)
-target_kldb = st.sidebar.text_input("Ziel-KldB-Schlüssel (5-stellig)", "25132")
+# 2. Integrierte JSON-Daten für die 15 Personen
+daten = [
+    {"id": "m_01", "name": "Karin", "ebene": "D4_Zentrum", "x": 0.0, "y": 0.0},
+    {"id": "m_02", "name": "Anna", "ebene": "D4_Nachbarschaft", "x": 0.8, "y": 0.9},
+    {"id": "m_03", "name": "Ben", "ebene": "D4_Nachbarschaft", "x": -1.5, "y": 1.5},
+    {"id": "m_04", "name": "Clara", "ebene": "D4_Nachbarschaft", "x": 2.0, "y": 1.9},
+    {"id": "m_05", "name": "David", "ebene": "D3_Teilstruktur", "x": 3.2, "y": 3.2},
+    {"id": "m_06", "name": "Felix", "ebene": "D3_Teilstruktur", "x": -4.0, "y": -2.0},
+    {"id": "m_07", "name": "Greta", "ebene": "D2_Struktur", "x": 5.1, "y": -1.0},
+    {"id": "m_08", "name": "Hannes", "ebene": "D2_Struktur", "x": -5.5, "y": 2.2},
+    {"id": "m_09", "name": "Ida", "ebene": "D2_Struktur", "x": 1.0, "y": -6.0},
+    {"id": "m_10", "name": "Julian", "ebene": "D1_Basis", "x": -6.5, "y": -6.5},
+    {"id": "m_11", "name": "Katrin", "ebene": "D1_Basis", "x": 7.0, "y": 4.0},
+    {"id": "m_12", "name": "Lukas", "ebene": "D1_Basis", "x": -8.0, "y": 1.0},
+    {"id": "m_13", "name": "Mia", "ebene": "D1_Basis", "x": 2.5, "y": 7.5},
+    {"id": "m_14", "name": "Nils", "ebene": "D1_Basis", "x": -3.0, "y": -7.5},
+    {"id": "m_15", "name": "Ole", "ebene": "D1_Basis", "x": 8.5, "y": -8.5}
+]
 
-# Hintergrund-Parser
-def parse_bio_to_logic(text):
-    lower = text.lower()
-    positive = []
-    negative = []
-    mode = "Direkteinsatz-Modus"
+df = pd.DataFrame(daten)
 
-    if "elektrotechnik" in lower or "elektroniker" in lower:
-        positive.append("Qualifikation_Elektrotechnik")
-    if "betriebstechnik" in lower:
-        positive.append("Ziel_Betriebstechnik")
-    if "praxisorientiert" in lower:
-        positive.append("Praxisorientierte_Arbeitsweise")
-        
-    if "keine nachtschicht" in lower or "nachtschicht" in lower:
-        if "keine nachtschicht" in lower:
-            negative.append("Ausschluss_Schichtarbeit")
+# 3. Dynamische Neuberechnung des Abstands und der Zuordnung bei jedem Slider-Move
+df['d_zu_karin'] = np.sqrt(df['x']**2 + df['y']**2)
 
-    if "quereinstieg" in lower:
-        mode = "Entwicklungs- & Qualifizierungs-Vektor"
-
-    return {
-        "mA": mode,
-        "↓A": positive,
-        "↑A": negative
-    }
-
-def get_topological_distance(applicant_inferred_code, target_code):
-    match_level = 0
-    for i in range(min(len(applicant_inferred_code), len(target_code))):
-        if applicant_inferred_code[i] == target_code[i]:
-            match_level = i + 1
-        else:
-            break
-    return 5 - match_level, match_level
-
-if st.sidebar.button("Matching & Topologie berechnen", type="primary"):
-    if len(target_kldb) != 5 or not target_kldb.isdigit():
-        st.error("Bitte geben Sie einen gültigen 5-stelligen numerischen KldB-Schlüssel ein (z. B. 25132).")
+# Zuweisung basierend auf dem aktuellen Epsilon-Wert
+def klassifiziere(row):
+    if row['d_zu_karin'] == 0:
+        return "Zentrum P(aa)"
+    elif row['d_zu_karin'] < epsilon:
+        return "Innerhalb K_ε (Zugetan)"
     else:
-        profile = parse_bio_to_logic(applicant_bio)
-        applicant_code = "25132" if "elektrotechnik" in applicant_bio.lower() else "43414"
-        dist, match_lvl = get_topological_distance(applicant_code, target_kldb)
+        return "Außerhalb K_ε (Distanziert)"
 
-        col1, col2 = st.columns(2)
+df['status'] = df.apply(klassifiziere, axis=1)
 
-        with col1:
-            st.subheader("Logische Extraktion (Parser)")
-            st.info(f"**Modus (mA):** {profile['mA']}")
-            pos_text = ", ".join(profile['↓A']) if profile['↓A'] else "Keine"
-            st.success(f"**Tatsachen / Positiv (↓A):** {pos_text}")
-            
-            if profile['↑A']:
-                st.error(f"**Dealbreaker / Ausschluss (↑A):** {', '.join(profile['↑A'])}")
-            else:
-                st.write("**Dealbreaker (↑A):** Keine harten Ausschlüsse erkannt.")
+# 4. Datentabelle anzeigen
+st.subheader(f"Strukturelle Analyse (Aktuelles ε = {epsilon})")
+st.dataframe(df[['name', 'ebene', 'd_zu_karin', 'status']])
 
-        with col2:
-            st.subheader("Topologischer Baum-Abgleich")
-            st.metric("Übereinstimmende KldB-Ebene", f"Ebene {match_lvl} von 5")
-            st.metric("Topologische Distanz", f"{dist} Schritte")
-            
-            collision = "Ausschluss_Schichtarbeit" in profile['↑A'] and target_kldb == "25132"
-            if collision:
-                st.warning("⚠️ **Kollisions-Check:** Match-Verhinderung wegen Schichtdienst-Ausschluss!")
-            else:
-                st.success("✅ **Kollisions-Check:** Keine harten Konflikte festgestellt.")
+# 5. Plotly Raumansicht mit dynamischem ε-Kreis
+st.subheader("Topologische Raumansicht")
 
-        st.markdown("---")
-        st.subheader("Visualisierung der topologischen Übereinstimmung")
+fig = px.scatter(
+    df, x='x', y='y', color='status', text='name',
+    range_x=[-10, 10], range_y=[-10, 10],
+    title=f"Dynamische ε-Umgebung (Radius = {epsilon})"
+)
 
-        chart_data = {
-            "Ebene 1 (Abschnitt)": 100 if match_lvl >= 1 else 20,
-            "Ebene 2 (Bereich)": 100 if match_lvl >= 2 else 20,
-            "Ebene 3 (Gruppe)": 100 if match_lvl >= 3 else 20,
-            "Ebene 4 (Familie)": 100 if match_lvl >= 4 else 20,
-            "Ebene 5 (Einzelberuf)": 100 if match_lvl >= 5 else 20,
-        }
-        
-        st.bar_chart(chart_data)
+# Den Kreis interaktiv an den Epsilon-Wert anpassen
+fig.add_shape(
+    type="circle",
+    xref="x", yref="y",
+    x0=-epsilon, y0=-epsilon, x1=epsilon, y1=epsilon,
+    line_color="rgba(0, 100, 255, 0.7)",
+    fillcolor="rgba(0, 100, 255, 0.15)"
+)
+
+fig.update_traces(textposition='top center', marker=dict(size=14))
+fig.update_layout(width=750, height=750)
+
+st.plotly_chart(fig)
