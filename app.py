@@ -1,63 +1,62 @@
-import streamlit as st
-import pandas as pd
 import numpy as np
-import plotly.express as px
+import streamlit as st
 
-st.title("Topologische $\varepsilon$-Umgebung & Hierarchie-Differenzierung")
+st.title("Habituelle Milieu-Passung")
+st.write("Strukturiertes Matching über Distanz-Metrik (Mismatch-Bestrafung).")
 
-# 1. Interaktiver Slider für Epsilon in der Sidebar
-st.sidebar.header("Topologische Steuerung")
-epsilon = st.sidebar.slider("Radius ε (Nachbarschafts-Aktionsradius)", min_value=0.5, max_value=8.0, value=3.0, step=0.1)
+# Beispiel-Profile als Vektoren: [KldB (skaliert), Bildung (1-5), Kulturelles Kapital (1-5), Ökonomischer Index (1-5)]
+# Hinweis: KldB-Werte zur besseren Vergleichbarkeit im Vektor kleiner skaliert oder als separate Kategorie behandelt.
+PROFILE_DB = {
+    "Anna": {"vektor": [2.1, 5, 4, 3], "milieu": "Akademisch-kulturell"},
+    "Bernd": {"vektor": [7.1, 2, 1, 4], "milieu": "Technisch-gewerblich"},
+    "Clara": {"vektor": [2.1, 5, 5, 4], "milieu": "Akademisch-kulturell"},
+    "David": {"vektor": [5.1, 3, 2, 2], "milieu": "Dienstleistungsorientiert"},
+}
 
-# 2. Integrierte Daten mit klarer hierarchischer Zuordnung (D1 bis D4)
-daten = [
-    {"id": "m_01", "name": "Karin", "ebene": "D4", "x": 0.0, "y": 0.0},
-    {"id": "m_02", "name": "Anna", "ebene": "D4", "x": 0.8, "y": 0.9},
-    {"id": "m_03", "name": "Ben", "ebene": "D4", "x": -1.5, "y": 1.5},
-    {"id": "m_04", "name": "Clara", "ebene": "D4", "x": 2.0, "y": 1.9},
-    {"id": "m_05", "name": "David", "ebene": "D3", "x": 3.2, "y": 3.2},
-    {"id": "m_06", "name": "Felix", "ebene": "D3", "x": -4.0, "y": -2.0},
-    {"id": "m_07", "name": "Greta", "ebene": "D2", "x": 5.1, "y": -1.0},
-    {"id": "m_08", "name": "Hannes", "ebene": "D2", "x": -5.5, "y": 2.2},
-    {"id": "m_09", "name": "Ida", "ebene": "D2", "x": 1.0, "y": -6.0},
-    {"id": "m_10", "name": "Julian", "ebene": "D1", "x": -6.5, "y": -6.5},
-    {"id": "m_11", "name": "Katrin", "ebene": "D1", "x": 7.0, "y": 4.0},
-    {"id": "m_12", "name": "Lukas", "ebene": "D1", "x": -8.0, "y": 1.0},
-    {"id": "m_13", "name": "Mia", "ebene": "D1", "x": 2.5, "y": 7.5},
-    {"id": "m_14", "name": "Nils", "ebene": "D1", "x": -3.0, "y": -7.5},
-    {"id": "m_15", "name": "Ole", "ebene": "D1", "x": 8.5, "y": -8.5}
-]
+def berechne_milieu_passung(vektor_a, vektor_b):
+    """Berechnet einen Passungs-Score (0 bis 1) basierend auf der euklidischen Distanz.
+    Je größer der Abstand, desto geringer die Passung."""
+    a = np.array(vektor_a, dtype=float)
+    b = np.array(vektor_b, dtype=float)
+    
+    # Euklidischer Abstand
+    abstand = np.linalg.norm(a - b)
+    
+    # In einen Score zwischen 0 und 1 transformieren (1 = identisch, sinkt bei Abstand)
+    # Der Teiler (z.B. 10.0) skaliert die Empfindlichkeit der Abweichung
+    score = 1.0 / (1.0 + 0.3 * abstand)
+    return float(score)
 
-df = pd.DataFrame(daten)
+def finde_matches(ziel_name, db):
+    if ziel_name not in db:
+        return []
 
-# 3. Abstände berechnen und prüfen, ob sie zusätzlich in K_epsilon liegen
-df['d_zu_karin'] = np.sqrt(df['x']**2 + df['y']**2)
-df['in_epsilon_ka'] = df['d_zu_karin'] < epsilon
+    ziel_vektor = db[ziel_name]["vektor"]
+    ergebnisse = []
 
-# 4. Datentabelle anzeigen
-st.subheader(f"Strukturelle Analyse (Aktuelles ε = {epsilon})")
-st.dataframe(df[['name', 'ebene', 'd_zu_karin', 'in_epsilon_ka']])
+    for name, daten in db.items():
+        if name == ziel_name:
+            continue
 
-# 5. Plotly Raumansicht: Farbliche Differenzierung exakt nach logischer Ebene (D1 bis D4)
-st.subheader("Topologische Raumansicht (Farbe = Hierarchieebene D1-D4)")
+        score = berechne_milieu_passung(ziel_vektor, daten["vektor"])
+        ergebnisse.append({
+            "name": name, 
+            "milieu": daten["milieu"], 
+            "passung": round(score, 3)
+        })
 
-fig = px.scatter(
-    df, x='x', y='y', color='ebene', text='name',
-    range_x=[-10, 10], range_y=[-10, 10],
-    category_orders={"ebene": ["D1", "D2", "D3", "D4"]},
-    title=f"Hierarchische Struktur & Dynamische ε-Umgebung (Radius = {epsilon})"
-)
+    ergebnisse = sorted(ergebnisse, key=lambda x: x["passung"], reverse=True)
+    return ergebnisse
 
-# Den interaktiven Epsilon-Kreis einzeichnen
-fig.add_shape(
-    type="circle",
-    xref="x", yref="y",
-    x0=-epsilon, y0=-epsilon, x1=epsilon, y1=epsilon,
-    line_color="rgba(255, 0, 0, 0.6)",
-    fillcolor="rgba(255, 0, 0, 0.05)"
-)
+auswahl = st.selectbox("Wähle ein Profil für das Matching:", list(PROFILE_DB.keys()))
 
-fig.update_traces(textposition='top center', marker=dict(size=14))
-fig.update_layout(width=750, height=750)
+if auswahl:
+    st.subheader(f"Profil: {auswahl} ({PROFILE_DB[auswahl]['milieu']})")
+    st.write("Vektor-Parameter:", PROFILE_DB[auswahl]["vektor"])
 
-st.plotly_chart(fig)
+    if st.button("Passende Milieus berechnen"):
+        matches = finde_matches(auswahl, PROFILE_DB)
+        
+        st.markdown("### Top-Matches (Nach Distanz)")
+        for m in matches:
+            st.write(f"- **{m['name']}** | Milieu: {m['milieu']} | Passungs-Score: `{m['passung']}`")
